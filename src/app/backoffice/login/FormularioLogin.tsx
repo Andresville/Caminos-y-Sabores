@@ -15,12 +15,12 @@ export default function FormularioLogin() {
   const [estado, accion, pendiente] = useActionState(iniciarSesion, estadoInicial);
 
   return (
-    <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: "100%" }}>
-      <Typography variant="h5" component="h1" gutterBottom>
-        Caminos y Sabores
+    <Paper variant="outlined" sx={{ p: 4, maxWidth: 420, width: "100%" }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }} gutterBottom>
+        Iniciar sesión
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>
-        Acceso al backoffice
+        Ingresá con tu cuenta del backoffice.
       </Typography>
 
       <Box
