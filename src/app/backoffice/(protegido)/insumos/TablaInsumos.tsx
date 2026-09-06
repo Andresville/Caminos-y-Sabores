@@ -90,8 +90,16 @@ export default function TablaInsumos({
       {insumos.length === 0 ? (
         <Typography color="text.secondary">Todavía no hay insumos cargados.</Typography>
       ) : (
-        <Paper variant="outlined">
-          <Table>
+        <Paper
+          variant="outlined"
+          sx={{
+            overflowX: "auto",
+            scrollbarWidth: "thin",
+            "&::-webkit-scrollbar": { height: 10 },
+            "&::-webkit-scrollbar-thumb": { bgcolor: "grey.400", borderRadius: 5 },
+          }}
+        >
+          <Table sx={{ minWidth: 900 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Insumo</TableCell>

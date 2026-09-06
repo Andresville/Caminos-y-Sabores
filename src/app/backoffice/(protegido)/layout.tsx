@@ -19,7 +19,10 @@ export default async function LayoutBackofficeProtegido({
     <UsuarioActualProvider value={usuarioActual}>
       <Box sx={{ display: "flex", minHeight: "100vh" }}>
         <BarraLateral />
-        <Box sx={{ flex: 1, bgcolor: "background.default" }}>{children}</Box>
+        {/* minWidth: 0 es necesario para que este panel pueda encogerse y
+            dejar que el contenido ancho (tablas, etc.) scrollee dentro
+            suyo, en vez de empujar todo el layout más allá del viewport. */}
+        <Box sx={{ flex: 1, minWidth: 0, bgcolor: "background.default" }}>{children}</Box>
       </Box>
     </UsuarioActualProvider>
   );

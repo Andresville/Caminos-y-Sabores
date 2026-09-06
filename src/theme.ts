@@ -15,6 +15,22 @@ const theme = createTheme({
   shape: {
     borderRadius: 6,
   },
+  components: {
+    MuiCssBaseline: {
+      // Saca las flechas nativas de los campos numéricos: en tablas
+      // angostas ocupan casi todo el ancho y tapan el valor cargado.
+      styleOverrides: `
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `,
+    },
+  },
 });
 
 export default theme;

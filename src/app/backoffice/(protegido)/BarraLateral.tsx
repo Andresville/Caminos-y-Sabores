@@ -24,7 +24,7 @@ interface ItemNav {
 const ITEMS: ItemNav[] = [
   { etiqueta: "Dashboard", href: "/backoffice", disponible: true },
   { etiqueta: "Materias primas", href: "/backoffice/insumos", disponible: true },
-  { etiqueta: "Recetas", href: "/backoffice/recetas", disponible: false },
+  { etiqueta: "Recetas", href: "/backoffice/recetas", disponible: true },
   { etiqueta: "Menús", href: "/backoffice/menus", disponible: false },
   { etiqueta: "Adicionales", href: "/backoffice/adicionales", disponible: false },
   {
