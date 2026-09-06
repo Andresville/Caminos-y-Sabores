@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
+import EncabezadoPagina from "@/components/EncabezadoPagina";
 import BotonEnlace from "@/components/BotonEnlace";
 import EditorReceta, { type LineaExistente, type RecetaExistente } from "./EditorReceta";
 import type { InsumoCatalogo, UnidadCatalogo } from "../mapeo";
@@ -27,7 +28,7 @@ export default async function PaginaEditorReceta({
     { data: lineas },
     { data: insumos },
     { data: unidades },
-    { data: parametro },
+    { data: coeficienteVentaDefectoRpc },
   ] = await Promise.all([
     supabase
       .from("receta")
@@ -54,31 +55,32 @@ export default async function PaginaEditorReceta({
       .eq("activa", true)
       .order("nombre")
       .returns<UnidadCatalogo[]>(),
-    supabase.from("parametro_sistema").select("valor").eq("clave", "COEFICIENTE_VENTA_DEFECTO").single(),
+    supabase.rpc("obtener_coeficiente_venta_defecto"),
   ]);
 
   if (errorReceta || !receta) {
     notFound();
   }
 
-  const coeficienteVentaDefecto = parametro ? Number(parametro.valor) : null;
+  const coeficienteVentaDefecto =
+    typeof coeficienteVentaDefectoRpc === "number" ? coeficienteVentaDefectoRpc : null;
 
   return (
     <>
-      <BotonEnlace href="/backoffice/recetas" sx={{ mb: 1 }}>
-        ← Recetas
-      </BotonEnlace>
-      <Typography variant="h4" gutterBottom>
-        Editor de receta
-      </Typography>
-      <EditorReceta
-        receta={receta}
-        lineasIniciales={lineas ?? []}
-        insumos={insumos ?? []}
-        unidades={unidades ?? []}
-        coeficienteVentaDefecto={coeficienteVentaDefecto}
-        soloLectura={soloLectura}
-      />
+      <EncabezadoPagina titulo="Editor de receta" subtitulo={receta.nombre_plato} />
+      <Box sx={{ p: 4 }}>
+        <BotonEnlace href="/backoffice/recetas" sx={{ mb: 2 }}>
+          ← Recetas
+        </BotonEnlace>
+        <EditorReceta
+          receta={receta}
+          lineasIniciales={lineas ?? []}
+          insumos={insumos ?? []}
+          unidades={unidades ?? []}
+          coeficienteVentaDefecto={coeficienteVentaDefecto}
+          soloLectura={soloLectura}
+        />
+      </Box>
     </>
   );
 }

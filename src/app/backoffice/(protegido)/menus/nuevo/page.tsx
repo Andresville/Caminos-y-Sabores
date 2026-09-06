@@ -4,26 +4,27 @@ import Typography from "@mui/material/Typography";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
 import EncabezadoPagina from "@/components/EncabezadoPagina";
 import BotonEnlace from "@/components/BotonEnlace";
-import FormularioNuevaReceta from "./FormularioNuevaReceta";
+import FormularioNuevoMenu from "./FormularioNuevoMenu";
 
-export default async function PaginaNuevaReceta() {
+export default async function PaginaNuevoMenu() {
   const usuarioActual = await obtenerUsuarioActual();
 
   if (usuarioActual?.rol !== "Chef Principal") {
-    redirect("/backoffice/recetas");
+    redirect("/backoffice/menus");
   }
 
   return (
     <>
-      <EncabezadoPagina titulo="Nueva receta" />
+      <EncabezadoPagina titulo="Nuevo menú" />
       <Box sx={{ p: 4 }}>
-        <BotonEnlace href="/backoffice/recetas" sx={{ mb: 2 }}>
-          ← Recetas
+        <BotonEnlace href="/backoffice/menus" sx={{ mb: 2 }}>
+          ← Menús
         </BotonEnlace>
         <Typography color="text.secondary" gutterBottom>
-          Completá los datos básicos. Después vas a poder agregar los insumos.
+          El coeficiente de venta se hereda del valor por defecto del sistema; lo ajusta Gerente Comercial
+          después si corresponde.
         </Typography>
-        <FormularioNuevaReceta />
+        <FormularioNuevoMenu />
       </Box>
     </>
   );
