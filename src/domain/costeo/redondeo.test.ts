@@ -3,8 +3,8 @@ import Decimal from "decimal.js";
 import { redondearComercial, redondearMoneda } from "./redondeo";
 
 describe("redondearComercial", () => {
-  // CP-18: Redondeo del total final al múltiplo de cien.
-  test("CP-18: un total de $6.894.492,18 se redondea a $6.894.500", () => {
+  // Redondeo del total final al múltiplo de cien.
+  test("un total de $6.894.492,18 se redondea a $6.894.500", () => {
     expect(redondearComercial(new Decimal("6894492.18"), new Decimal(100)).toFixed(2)).toBe(
       "6894500.00",
     );

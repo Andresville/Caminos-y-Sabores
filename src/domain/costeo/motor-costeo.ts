@@ -3,7 +3,7 @@ import type { Insumo, LineaReceta, Receta, ResultadoLinea, ResultadoReceta } fro
 import { convertirACantidadBase } from "./conversion";
 import { ErrorCantidadInvalida, ErrorMermaInvalida } from "./errores";
 
-/** RN-03: el costo base es siempre el costo por unidad base del insumo. */
+/** El costo base es siempre el costo por unidad base del insumo. */
 export function costoBaseInsumo(insumo: Insumo): Decimal {
   if (insumo.costoUnitario.lte(0)) {
     throw new ErrorCantidadInvalida(
@@ -14,9 +14,9 @@ export function costoBaseInsumo(insumo: Insumo): Decimal {
 }
 
 /**
- * Costea una línea de receta (sección 9.3, pasos 1 a 4). No conoce
- * menús, cotizaciones ni impuestos: eso es lo que permite cubrirla con
- * pruebas unitarias rápidas, sin base de datos ni interfaz.
+ * Costea una línea de receta. No conoce menús, cotizaciones ni
+ * impuestos: eso es lo que permite cubrirla con pruebas unitarias
+ * rápidas, sin base de datos ni interfaz.
  */
 export function costearLinea(linea: LineaReceta): ResultadoLinea {
   if (linea.cantidadUsada.lte(0)) {
@@ -34,9 +34,8 @@ export function costearLinea(linea: LineaReceta): ResultadoLinea {
 }
 
 /**
- * Costea una receta completa (sección 9.3, pasos 5 y 6). Suma los
- * costos de línea sin redondear en cada paso (sección 9.7) y solo
- * divide por la cantidad de porciones al final.
+ * Costea una receta completa. Suma los costos de línea sin redondear
+ * en cada paso y solo divide por la cantidad de porciones al final.
  */
 export function costearReceta(receta: Receta): ResultadoReceta {
   if (receta.cantidadPorciones <= 0) {

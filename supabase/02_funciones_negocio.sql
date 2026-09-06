@@ -3,12 +3,12 @@
 -- que cierran puntos abiertos del primer script (supabase/schema.sql):
 --
 --   1. Protege menu.coeficiente_venta a nivel de columna (solo Gerente
---      Comercial o Administrador pueden modificarlo — sección 7.3).
---   2. Función para actualizar el precio de un insumo aplicando RN-05
---      (motivo obligatorio si la variación supera el umbral) y
+--      Comercial o Administrador pueden modificarlo).
+--   2. Función para actualizar el precio de un insumo, exigiendo un
+--      motivo cuando la variación supera el umbral configurado y
 --      registrando el histórico automáticamente.
---   3. RF-01.4: bloqueo de cuenta tras 5 intentos fallidos de login,
---      resuelto enteramente en la base de datos (sin service_role key).
+--   3. Bloqueo de cuenta tras 5 intentos fallidos de login, resuelto
+--      enteramente en la base de datos (sin service_role key).
 --
 -- Cómo ejecutar: pegar en el SQL Editor de Supabase y correr, igual que
 -- el primer script.
@@ -38,7 +38,7 @@ create trigger trg_proteger_coeficiente_venta_menu
   for each row execute function public.fn_proteger_coeficiente_venta_menu();
 
 -- ---------------------------------------------------------------------
--- 2. Actualizar precio de un insumo (RF-02.3, RF-02.4, RN-05)
+-- 2. Actualizar precio de un insumo
 --
 -- security definer + chequeo de rol manual: así la función también
 -- puede escribir en historico_precio_mp (que no tiene política de
@@ -84,7 +84,7 @@ begin
   where clave = 'UMBRAL_MOTIVO_PRECIO_PCT';
 
   if abs(v_variacion_pct) > v_umbral and (p_motivo is null or btrim(p_motivo) = '') then
-    raise exception 'RN-05: la variación de precio del % por ciento supera el umbral configurado; debe indicar un motivo', round(abs(v_variacion_pct), 2);
+    raise exception 'La variación de precio del % por ciento supera el umbral configurado; debe indicar un motivo', round(abs(v_variacion_pct), 2);
   end if;
 
   update public.materia_prima
@@ -105,7 +105,7 @@ $$;
 grant execute on function public.actualizar_precio_materia_prima(integer, numeric, varchar) to authenticated;
 
 -- ---------------------------------------------------------------------
--- 3. RF-01.4: bloqueo tras 5 intentos fallidos de login
+-- 3. Bloqueo tras 5 intentos fallidos de login
 --
 -- Ambas funciones deben poder ejecutarse ANTES de que el usuario esté
 -- autenticado (durante el propio intento de login), por eso se otorga

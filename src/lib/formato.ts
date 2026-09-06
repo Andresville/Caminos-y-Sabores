@@ -1,4 +1,4 @@
-/** RNF-23: los importes se expresan en pesos argentinos, separador de miles punto, decimal coma. */
+/** Los importes se expresan en pesos argentinos, separador de miles punto, decimal coma. */
 export const formatoMoneda = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",

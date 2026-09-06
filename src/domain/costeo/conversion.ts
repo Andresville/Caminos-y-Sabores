@@ -7,8 +7,8 @@ import { ErrorUnidadesIncompatibles } from "./errores";
  * MAGNITUD DEL INSUMO, para que pueda combinarse con el costo base del
  * insumo (que también está expresado en esa unidad base).
  *
- * RN-02: solo se convierte entre unidades de la misma magnitud, salvo
- * que el insumo tenga densidad declarada, en cuyo caso se admite la
+ * Solo se convierte entre unidades de la misma magnitud, salvo que el
+ * insumo tenga densidad declarada, en cuyo caso se admite la
  * conversión masa–volumen (por ejemplo, crema medida en mililitros
  * por el Chef pero facturada por kilogramo por el proveedor).
  */

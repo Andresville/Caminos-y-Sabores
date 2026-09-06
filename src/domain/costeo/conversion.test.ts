@@ -6,8 +6,8 @@ import { GRAMO, KILOGRAMO, LITRO, MILILITRO, UNIDAD } from "./unidades.fixtures"
 import type { Insumo } from "./tipos";
 
 describe("convertirACantidadBase", () => {
-  // CP-03: Intentar cargar mililitros sobre un insumo de masa sin densidad.
-  test("CP-03: rechaza mililitros sobre un insumo de masa sin densidad declarada", () => {
+  // Intentar cargar mililitros sobre un insumo de masa sin densidad.
+  test("rechaza mililitros sobre un insumo de masa sin densidad declarada", () => {
     const suprema: Insumo = {
       nombre: "Suprema de Pollo",
       costoUnitario: new Decimal(9500),
@@ -19,8 +19,8 @@ describe("convertirACantidadBase", () => {
     );
   });
 
-  // CP-04: Cargar mililitros sobre un insumo de masa con densidad declarada.
-  test("CP-04: convierte usando la densidad cuando el insumo la tiene declarada", () => {
+  // Cargar mililitros sobre un insumo de masa con densidad declarada.
+  test("convierte usando la densidad cuando el insumo la tiene declarada", () => {
     const crema: Insumo = {
       nombre: "Crema de leche",
       costoUnitario: new Decimal(3000),

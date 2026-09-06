@@ -10,8 +10,8 @@ function insumo(nombre: string, costoUnitario: number, unidadCompra = KILOGRAMO)
 }
 
 describe("costearLinea", () => {
-  // CP-01: Convertir 500 g declarados sobre un insumo comprado en kg.
-  test("CP-01: 500 g de mozzarella comprada a $16.000/kg con 2% de merma", () => {
+  // Convertir 500 g declarados sobre un insumo comprado en kg.
+  test("500 g de mozzarella comprada a $16.000/kg con 2% de merma", () => {
     const linea: LineaReceta = {
       insumo: insumo("Mozzarella", 16000),
       cantidadUsada: new Decimal(500),
@@ -25,8 +25,8 @@ describe("costearLinea", () => {
     expect(resultado.costoLinea.toFixed(2)).toBe("8163.27");
   });
 
-  // CP-02: Convertir cantidad declarada en la misma unidad de compra.
-  test("CP-02: cantidad bruta igual a la neta ajustada solo por merma cuando la unidad coincide", () => {
+  // Convertir cantidad declarada en la misma unidad de compra.
+  test("cantidad bruta igual a la neta ajustada solo por merma cuando la unidad coincide", () => {
     const linea: LineaReceta = {
       insumo: insumo("Harina", 1000),
       cantidadUsada: new Decimal(2),
@@ -40,8 +40,8 @@ describe("costearLinea", () => {
     expect(resultado.cantidadBruta.toFixed(3)).toBe("2222.222");
   });
 
-  // CP-05: Merma en el límite superior admitido, 99,9 %.
-  test("CP-05: merma de 99,9% no produce error ni un resultado sin control", () => {
+  // Merma en el límite superior admitido, 99,9 %.
+  test("merma de 99,9% no produce error ni un resultado sin control", () => {
     const linea: LineaReceta = {
       insumo: insumo("Azafrán", 500000),
       cantidadUsada: new Decimal(1),
@@ -56,8 +56,8 @@ describe("costearLinea", () => {
     expect(resultado.cantidadBruta.toFixed(2)).toBe("1000.00");
   });
 
-  // CP-06: Merma igual a 100%.
-  test("CP-06: rechaza una merma de 100% antes de calcular", () => {
+  // Merma igual a 100%.
+  test("rechaza una merma de 100% antes de calcular", () => {
     const linea: LineaReceta = {
       insumo: insumo("Azafrán", 500000),
       cantidadUsada: new Decimal(1),
@@ -68,8 +68,8 @@ describe("costearLinea", () => {
     expect(() => costearLinea(linea)).toThrow(ErrorMermaInvalida);
   });
 
-  // CP-07: Cantidad usada igual a cero.
-  test("CP-07: rechaza la línea cuando la cantidad usada es cero", () => {
+  // Cantidad usada igual a cero.
+  test("rechaza la línea cuando la cantidad usada es cero", () => {
     const linea: LineaReceta = {
       insumo: insumo("Sal", 800),
       cantidadUsada: new Decimal(0),
@@ -80,14 +80,14 @@ describe("costearLinea", () => {
     expect(() => costearLinea(linea)).toThrow(ErrorCantidadInvalida);
   });
 
-  // CP-08: Costo unitario del insumo igual a cero.
-  test("CP-08: rechaza un insumo con costo unitario igual a cero", () => {
+  // Costo unitario del insumo igual a cero.
+  test("rechaza un insumo con costo unitario igual a cero", () => {
     expect(() => costoBaseInsumo(insumo("Agua de canilla", 0))).toThrow(ErrorCantidadInvalida);
   });
 });
 
 describe("costearReceta", () => {
-  // Fixture: receta "Supremas Rellenas" de la sección 9.4 (4 porciones, 8 insumos).
+  // Fixture: receta "Supremas Rellenas" (4 porciones, 8 insumos).
   function lineasSupremasRellenas(): LineaReceta[] {
     return [
       { insumo: insumo("Queso Mozzarella", 16000), cantidadUsada: new Decimal(500), unidadReceta: GRAMO, porcentajeMerma: new Decimal(2) },
@@ -101,8 +101,8 @@ describe("costearReceta", () => {
     ];
   }
 
-  // CP-09: Receta completa de ocho ingredientes (Supremas Rellenas).
-  test("CP-09: costo total y por porción de Supremas Rellenas con las mermas declaradas", () => {
+  // Receta completa de ocho ingredientes (Supremas Rellenas).
+  test("costo total y por porción de Supremas Rellenas con las mermas declaradas", () => {
     const receta: Receta = { cantidadPorciones: 4, lineas: lineasSupremasRellenas() };
 
     const resultado = costearReceta(receta);
@@ -111,8 +111,8 @@ describe("costearReceta", () => {
     expect(resultado.costoPorPorcion.toFixed(2)).toBe("8704.80");
   });
 
-  // CP-10: Misma receta sin mermas cargadas.
-  test("CP-10: la misma receta sin mermas da un costo menor", () => {
+  // Misma receta sin mermas cargadas.
+  test("la misma receta sin mermas da un costo menor", () => {
     const lineasSinMerma = lineasSupremasRellenas().map((linea) => ({
       ...linea,
       porcentajeMerma: new Decimal(0),

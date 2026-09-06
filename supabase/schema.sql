@@ -1,7 +1,6 @@
 -- =====================================================================
 -- Caminos y Sabores — Esquema inicial de base de datos (Supabase/Postgres)
--- Corresponde al capítulo 8 (Modelo de datos) del documento de
--- especificación, con las políticas de acceso de la sección 7.3.
+-- Modelo de datos y políticas de acceso por rol.
 --
 -- Cómo ejecutar: copiar todo este archivo y pegarlo en el SQL Editor
 -- del dashboard de Supabase (Project > SQL Editor > New query > Run).
@@ -47,7 +46,7 @@ create table public.unidad_medida (
   creado_en       timestamptz not null default now(),
   actualizado_en  timestamptz not null default now()
 );
--- RN-01: una sola unidad base por magnitud.
+-- Una sola unidad base por magnitud.
 create unique index una_unidad_base_por_magnitud
   on public.unidad_medida (magnitud) where es_unidad_base;
 
@@ -151,10 +150,10 @@ create index idx_materia_prima_categoria on public.materia_prima (id_categoria);
 create index idx_materia_prima_ultima_actualizacion on public.materia_prima (ultima_actualizacion);
 
 -- Nota: esta tabla no tiene política de INSERT para roles autenticados
--- porque, según RF-02.3/RN-05, el registro histórico lo genera el
--- backend al procesar un cambio de precio (junto con la validación del
--- motivo obligatorio). Esa lógica de negocio queda para el paso del
--- motor de costeo / capa de aplicación, no para este esquema.
+-- porque el registro histórico lo genera el backend al procesar un
+-- cambio de precio (junto con la validación del motivo obligatorio).
+-- Esa lógica de negocio queda para el paso del motor de costeo / capa
+-- de aplicación, no para este esquema.
 create table public.historico_precio_mp (
   id_historico     integer generated always as identity primary key,
   id_materia_prima integer not null references public.materia_prima(id_materia_prima) on delete restrict,
@@ -195,11 +194,12 @@ create table public.receta_materia_prima (
 );
 create index idx_receta_mp_materia_prima on public.receta_materia_prima (id_materia_prima);
 
--- ADVERTENCIA (punto abierto, ver mensaje): la sección 7.3 separa
--- "composición de menús" (Chef, escritura) de "coeficiente de venta
--- del menú" (solo Gerente Comercial, escritura). RLS restringe filas,
--- no columnas individuales dentro de la misma fila, así que esta
--- separación fina para coeficiente_venta NO está aplicada todavía.
+-- ADVERTENCIA (punto abierto, ver mensaje): la matriz de permisos
+-- separa "composición de menús" (Chef, escritura) de "coeficiente de
+-- venta del menú" (solo Gerente Comercial, escritura). RLS restringe
+-- filas, no columnas individuales dentro de la misma fila, así que
+-- esta separación fina para coeficiente_venta NO está aplicada
+-- todavía.
 create table public.menu (
   id_menu            integer generated always as identity primary key,
   nombre_menu        varchar(100) not null,
@@ -235,8 +235,9 @@ create table public.servicio_adicional (
   actualizado_en     timestamptz not null default now()
 );
 
--- RNF-10 (cifrado de email_cliente/telefono_cliente) NO está aplicado
--- todavía: son varchar en texto plano. Punto abierto, ver mensaje.
+-- El cifrado de columna para email_cliente/telefono_cliente NO está
+-- aplicado todavía: son varchar en texto plano. Punto abierto, ver
+-- mensaje.
 create table public.cotizacion (
   id_cotizacion          integer generated always as identity primary key,
   codigo                 varchar(20) not null unique,
@@ -305,9 +306,9 @@ begin
 end;
 $$;
 
--- RN-16 (la regla más importante del sistema): una cotización emitida
--- congela sus datos. Solo el campo estado (y el hash del documento)
--- pueden cambiar después de la emisión.
+-- La regla más importante del sistema: una cotización emitida congela
+-- sus datos. Solo el campo estado (y el hash del documento) pueden
+-- cambiar después de la emisión.
 create or replace function public.fn_proteger_cotizacion_emitida()
 returns trigger
 language plpgsql
@@ -324,7 +325,7 @@ begin
      or new.nombre_cliente    is distinct from old.nombre_cliente
      or new.email_cliente     is distinct from old.email_cliente
   then
-    raise exception 'RN-16: una cotización emitida no puede modificar sus datos congelados, solo su estado';
+    raise exception 'Una cotización emitida no puede modificar sus datos congelados, solo su estado';
   end if;
   return new;
 end;
@@ -335,7 +336,7 @@ returns trigger
 language plpgsql
 as $$
 begin
-  raise exception 'RN-16: el detalle de una cotización emitida es inmutable';
+  raise exception 'El detalle de una cotización emitida es inmutable';
 end;
 $$;
 
@@ -364,13 +365,13 @@ create trigger trg_bloquear_delete_detalle
   for each row execute function public.fn_bloquear_edicion_detalle();
 
 -- =====================================================================
--- 9. Row Level Security — matriz de roles y permisos (sección 7.3)
+-- 9. Row Level Security — matriz de roles y permisos
 --
 -- "Usuario Público" no tiene ninguna política a su favor: el portal
 -- público nunca usa la clave anónima contra estas tablas, siempre pasa
--- por un endpoint del servidor con la service_role key (ADR-02, RN-18).
--- Si en algún punto se prefiere que el público lea tablas directo,
--- avisar antes de cambiar este criterio.
+-- por un endpoint del servidor con la service_role key. Si en algún
+-- punto se prefiere que el público lea tablas directo, avisar antes de
+-- cambiar este criterio.
 -- =====================================================================
 
 alter table public.unidad_medida       enable row level security;
@@ -391,7 +392,7 @@ alter table public.servicio_adicional  enable row level security;
 alter table public.cotizacion          enable row level security;
 alter table public.cotizacion_detalle  enable row level security;
 
--- ---- unidad_medida (CU-04: escritura de Jefe de Compras o Administrador) ----
+-- ---- unidad_medida (escritura de Jefe de Compras o Administrador) ----
 create policy unidad_medida_select on public.unidad_medida for select to authenticated
   using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
 create policy unidad_medida_insert on public.unidad_medida for insert to authenticated
@@ -449,7 +450,7 @@ create policy receta_mp_update on public.receta_materia_prima for update to auth
 create policy receta_mp_delete on public.receta_materia_prima for delete to authenticated
   using (rol_actual() = 'Chef Principal');
 
--- ---- menu / menu_receta (JefeCompras no tiene acceso, según 7.3) ----
+-- ---- menu / menu_receta (JefeCompras no tiene acceso) ----
 create policy menu_select on public.menu for select to authenticated
   using (rol_actual() in ('Chef Principal','Gerente Comercial','Administrador'));
 create policy menu_insert on public.menu for insert to authenticated
@@ -479,7 +480,7 @@ create policy servicio_adicional_update on public.servicio_adicional for update 
 
 -- ---- cotizacion / cotizacion_detalle ----
 -- Sin política de INSERT: la emisión la hace el backend con la
--- service_role key (bypassa RLS), nunca el cliente directo (RN-18).
+-- service_role key (bypassa RLS), nunca el cliente directo.
 create policy cotizacion_select on public.cotizacion for select to authenticated
   using (rol_actual() in ('Gerente Comercial','Administrador'));
 create policy cotizacion_update_estado on public.cotizacion for update to authenticated
@@ -531,7 +532,7 @@ create policy auditoria_select on public.auditoria for select to authenticated
 -- 10. Datos semilla
 -- =====================================================================
 
--- Unidades de medida (sección 9.2)
+-- Unidades de medida de referencia
 insert into public.unidad_medida (nombre, simbolo, magnitud, factor_a_base, es_unidad_base, activa) values
   ('Miligramo', 'mg', 'MASA', 0.001, false, true),
   ('Gramo', 'g', 'MASA', 1, true, true),
@@ -542,7 +543,7 @@ insert into public.unidad_medida (nombre, simbolo, magnitud, factor_a_base, es_u
   ('Unidad', 'un', 'CONTEO', 1, true, true),
   ('Docena', 'doc', 'CONTEO', 12, false, true);
 
--- Roles (sección 7.2 / 7.3). "Usuario Público" es un rol de referencia:
+-- Roles del sistema. "Usuario Público" es un rol de referencia:
 -- no requiere autenticación y no se asigna a ninguna fila de usuario.
 insert into public.rol (nombre_rol, descripcion) values
   ('Jefe de Compras', 'Mantiene el catálogo de insumos, sus costos y el costo de los servicios adicionales.'),
@@ -551,20 +552,19 @@ insert into public.rol (nombre_rol, descripcion) values
   ('Administrador', 'Administra usuarios, roles y parámetros. Consulta la auditoría.'),
   ('Usuario Público', 'Rol de referencia para el canal público; no requiere autenticación ni fila en usuario.');
 
--- Parámetros del sistema (sección 5.6). Los marcados PENDIENTE DE FIRMA
--- son valores de referencia, no cifras validadas por el negocio (ver
--- la advertencia del propio documento en esa sección).
+-- Parámetros del sistema. Los marcados PENDIENTE DE FIRMA son valores
+-- de referencia, no cifras validadas por el negocio.
 insert into public.parametro_sistema (clave, valor, tipo_dato, descripcion, modificable_por_rol) values
-  ('IVA_PORCENTAJE', '21.00', 'PORCENTAJE', 'Alícuota de IVA aplicada al precio neto (RN-12).', 'Administrador'),
-  ('GASTOS_GENERALES_PCT', '12.00', 'PORCENTAJE', 'Gastos generales sobre el costo directo (RN-10). PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('COEFICIENTE_VENTA_DEFECTO', '1.45', 'DECIMAL', 'Coeficiente de venta por defecto (RN-11). PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('PAX_POR_MOZO', '15', 'ENTERO', 'Cantidad de invitados por mozo (RN-14). PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('COSTO_MOZO_EVENTO', '85000.00', 'DECIMAL', 'Costo por mozo por evento (RN-14). PENDIENTE DE FIRMA.', 'Jefe de Compras'),
-  ('PAX_MINIMO_EVENTO', '20', 'ENTERO', 'Mínimo de invitados para cotización automática (RN-15).', 'Gerente Comercial'),
-  ('PAX_MAXIMO_AUTOMATICO', '300', 'ENTERO', 'Máximo de invitados para cotización automática (RN-15).', 'Gerente Comercial'),
-  ('VALIDEZ_COTIZACION_DIAS', '15', 'ENTERO', 'Días de validez de una cotización (RN-17).', 'Gerente Comercial'),
-  ('DIAS_ALERTA_PRECIO', '30', 'ENTERO', 'Días para considerar un precio desactualizado (RN-04).', 'Jefe de Compras'),
-  ('UMBRAL_MOTIVO_PRECIO_PCT', '20.00', 'PORCENTAJE', 'Umbral de variación que exige motivo (RN-05).', 'Administrador'),
-  ('REDONDEO_PRECIO_FINAL', '100', 'ENTERO', 'Múltiplo de redondeo comercial del precio final (RN-13).', 'Gerente Comercial');
+  ('IVA_PORCENTAJE', '21.00', 'PORCENTAJE', 'Alícuota de IVA aplicada al precio neto.', 'Administrador'),
+  ('GASTOS_GENERALES_PCT', '12.00', 'PORCENTAJE', 'Gastos generales sobre el costo directo. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
+  ('COEFICIENTE_VENTA_DEFECTO', '1.45', 'DECIMAL', 'Coeficiente de venta por defecto. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
+  ('PAX_POR_MOZO', '15', 'ENTERO', 'Cantidad de invitados por mozo. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
+  ('COSTO_MOZO_EVENTO', '85000.00', 'DECIMAL', 'Costo por mozo por evento. PENDIENTE DE FIRMA.', 'Jefe de Compras'),
+  ('PAX_MINIMO_EVENTO', '20', 'ENTERO', 'Mínimo de invitados para cotización automática.', 'Gerente Comercial'),
+  ('PAX_MAXIMO_AUTOMATICO', '300', 'ENTERO', 'Máximo de invitados para cotización automática.', 'Gerente Comercial'),
+  ('VALIDEZ_COTIZACION_DIAS', '15', 'ENTERO', 'Días de validez de una cotización.', 'Gerente Comercial'),
+  ('DIAS_ALERTA_PRECIO', '30', 'ENTERO', 'Días para considerar un precio desactualizado.', 'Jefe de Compras'),
+  ('UMBRAL_MOTIVO_PRECIO_PCT', '20.00', 'PORCENTAJE', 'Umbral de variación que exige motivo.', 'Administrador'),
+  ('REDONDEO_PRECIO_FINAL', '100', 'ENTERO', 'Múltiplo de redondeo comercial del precio final.', 'Gerente Comercial');
 
 commit;

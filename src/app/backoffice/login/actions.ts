@@ -24,8 +24,8 @@ export async function iniciarSesion(
 
   const supabase = await createClient();
 
-  // RF-01.4: si la cuenta está bloqueada por intentos fallidos, ni
-  // siquiera se intenta autenticar contra Supabase Auth.
+  // Si la cuenta está bloqueada por intentos fallidos, ni siquiera se
+  // intenta autenticar contra Supabase Auth.
   const { data: bloqueadoHasta } = await supabase.rpc("usuario_bloqueado_hasta", {
     p_email: email,
   });
