@@ -43,7 +43,7 @@ const ITEMS: ItemNav[] = [
     disponible: true,
     roles: ["Gerente Comercial", "Administrador"],
   },
-  { etiqueta: "Usuarios", href: "/backoffice/usuarios", disponible: false, roles: ["Administrador"] },
+  { etiqueta: "Usuarios", href: "/backoffice/usuarios", disponible: true, roles: ["Administrador"] },
   {
     etiqueta: "Auditoría",
     href: "/backoffice/auditoria",

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Box from "@mui/material/Box";
+import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
 import { UsuarioActualProvider } from "@/lib/usuario-actual/UsuarioActualProvider";
 import BarraLateral from "./BarraLateral";
@@ -12,6 +13,11 @@ export default async function LayoutBackofficeProtegido({
   const usuarioActual = await obtenerUsuarioActual();
 
   if (!usuarioActual) {
+    // Cubre tanto "nunca inició sesión" como "la cuenta se desactivó o
+    // bloqueó mientras la sesión seguía abierta": en ambos casos, si
+    // quedaba una sesión de Supabase Auth viva, se cierra acá.
+    const supabase = await createClient();
+    await supabase.auth.signOut();
     redirect("/backoffice/login");
   }
 

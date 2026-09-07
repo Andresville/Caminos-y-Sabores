@@ -44,5 +44,15 @@ export async function iniciarSesion(
     return { error: "Email o contraseña incorrectos." };
   }
 
+  // Credenciales válidas, pero la cuenta puede estar desactivada:
+  // rol_actual() ya excluye usuarios con estado = false, así que si
+  // no devuelve nada acá es que no puede usar el sistema.
+  const { data: rolActual } = await supabase.rpc("rol_actual");
+
+  if (!rolActual) {
+    await supabase.auth.signOut();
+    return { error: "Tu cuenta está desactivada. Contactá al administrador del sistema." };
+  }
+
   redirect("/backoffice");
 }
