@@ -40,14 +40,14 @@ const ITEMS: ItemNav[] = [
   {
     etiqueta: "Cotizaciones",
     href: "/backoffice/cotizaciones",
-    disponible: false,
+    disponible: true,
     roles: ["Gerente Comercial", "Administrador"],
   },
   { etiqueta: "Usuarios", href: "/backoffice/usuarios", disponible: false, roles: ["Administrador"] },
   {
     etiqueta: "Auditoría",
     href: "/backoffice/auditoria",
-    disponible: false,
+    disponible: true,
     roles: ["Gerente Comercial", "Administrador"],
   },
 ];
