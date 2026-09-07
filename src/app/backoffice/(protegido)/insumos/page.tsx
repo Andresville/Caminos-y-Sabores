@@ -18,7 +18,7 @@ export default async function PaginaInsumos() {
     supabase
       .from("materia_prima")
       .select(
-        `id_materia_prima, nombre, costo_unitario, densidad_g_ml, estado, ultima_actualizacion,
+        `id_materia_prima, nombre, costo_unitario, existencia_actual, densidad_g_ml, estado, ultima_actualizacion,
          id_categoria, id_unidad_compra, id_proveedor,
          categoria:id_categoria ( nombre ),
          unidad_compra:id_unidad_compra ( simbolo, magnitud, factor_a_base )`,

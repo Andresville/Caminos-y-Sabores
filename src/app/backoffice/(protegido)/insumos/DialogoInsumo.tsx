@@ -38,6 +38,9 @@ export default function DialogoInsumo({
   const [idCategoria, setIdCategoria] = useState(insumo ? String(insumo.id_categoria) : "");
   const [idUnidadCompra, setIdUnidadCompra] = useState(insumo ? String(insumo.id_unidad_compra) : "");
   const [costoUnitario, setCostoUnitario] = useState(insumo ? String(insumo.costo_unitario) : "");
+  const [existenciaActual, setExistenciaActual] = useState(
+    insumo ? String(insumo.existencia_actual) : "0",
+  );
   const [idProveedor, setIdProveedor] = useState(insumo?.id_proveedor ? String(insumo.id_proveedor) : "");
   const [densidad, setDensidad] = useState(insumo?.densidad_g_ml != null ? String(insumo.densidad_g_ml) : "");
   const [estadoActivo, setEstadoActivo] = useState(insumo?.estado ?? true);
@@ -70,6 +73,7 @@ export default function DialogoInsumo({
     formData.set("id_categoria", idCategoria);
     formData.set("id_unidad_compra", idUnidadCompra);
     formData.set("costo_unitario", costoUnitario);
+    formData.set("existencia_actual", existenciaActual);
     formData.set("id_proveedor", idProveedor);
     formData.set("densidad_g_ml", densidad);
     formData.set("estado", String(estadoActivo));
@@ -149,6 +153,23 @@ export default function DialogoInsumo({
               required
               fullWidth
               disabled={pendiente}
+            />
+          </Stack>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              label="Existencia actual"
+              type="number"
+              value={existenciaActual}
+              onChange={(evento) => setExistenciaActual(evento.target.value)}
+              slotProps={{ htmlInput: { step: "0.001", min: "0" } }}
+              fullWidth
+              disabled={pendiente}
+              helperText={
+                unidadSeleccionada
+                  ? `En ${unidadSeleccionada.simbolo}, la unidad de compra`
+                  : "En la unidad de compra"
+              }
             />
           </Stack>
 

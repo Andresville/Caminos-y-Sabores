@@ -40,6 +40,7 @@ export interface FilaInsumo {
   id_materia_prima: number;
   nombre: string;
   costo_unitario: number;
+  existencia_actual: number;
   densidad_g_ml: number | null;
   estado: boolean;
   ultima_actualizacion: string;
@@ -99,7 +100,7 @@ export default function TablaInsumos({
             "&::-webkit-scrollbar-thumb": { bgcolor: "grey.400", borderRadius: 5 },
           }}
         >
-          <Table sx={{ minWidth: 900 }}>
+          <Table sx={{ minWidth: 1000 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Insumo</TableCell>
@@ -107,6 +108,7 @@ export default function TablaInsumos({
                 <TableCell>Unidad compra</TableCell>
                 <TableCell align="right">Costo unitario</TableCell>
                 <TableCell align="right">Costo base</TableCell>
+                <TableCell align="right">Existencia</TableCell>
                 <TableCell>Actualizado</TableCell>
                 <TableCell align="right">Recetas</TableCell>
                 <TableCell>Estado</TableCell>
@@ -137,6 +139,9 @@ export default function TablaInsumos({
                       {costoBase != null
                         ? `${formatoMoneda.format(costoBase)} /${baseUnidad?.simbolo ?? ""}`
                         : "—"}
+                    </TableCell>
+                    <TableCell align="right">
+                      {insumo.existencia_actual} {insumo.unidad_compra?.simbolo ?? ""}
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>

@@ -34,6 +34,8 @@ export async function guardarInsumo(
   const idCategoria = Number(formData.get("id_categoria"));
   const idUnidadCompra = Number(formData.get("id_unidad_compra"));
   const costoUnitario = Number(formData.get("costo_unitario"));
+  const existenciaActualRaw = String(formData.get("existencia_actual") ?? "").trim();
+  const existenciaActual = existenciaActualRaw ? Number(existenciaActualRaw) : 0;
   const idProveedorRaw = String(formData.get("id_proveedor") ?? "");
   const idProveedor = idProveedorRaw ? Number(idProveedorRaw) : null;
   const densidadRaw = String(formData.get("densidad_g_ml") ?? "").trim();
@@ -47,6 +49,9 @@ export async function guardarInsumo(
   if (!Number.isFinite(costoUnitario) || costoUnitario <= 0) {
     return { error: "El costo unitario debe ser mayor a cero." };
   }
+  if (!Number.isFinite(existenciaActual) || existenciaActual < 0) {
+    return { error: "La existencia actual no puede ser negativa." };
+  }
 
   const supabase = await createClient();
 
@@ -57,6 +62,7 @@ export async function guardarInsumo(
       id_unidad_compra: idUnidadCompra,
       id_proveedor: idProveedor,
       costo_unitario: costoUnitario,
+      existencia_actual: existenciaActual,
       densidad_g_ml: densidad,
     });
 
@@ -94,6 +100,7 @@ export async function guardarInsumo(
       id_categoria: idCategoria,
       id_unidad_compra: idUnidadCompra,
       id_proveedor: idProveedor,
+      existencia_actual: existenciaActual,
       densidad_g_ml: densidad,
       estado,
     })
