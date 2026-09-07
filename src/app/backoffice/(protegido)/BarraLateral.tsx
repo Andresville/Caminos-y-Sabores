@@ -31,7 +31,12 @@ const ITEMS: ItemNav[] = [
     disponible: true,
     roles: ["Chef Principal", "Gerente Comercial", "Administrador"],
   },
-  { etiqueta: "Adicionales", href: "/backoffice/adicionales", disponible: false },
+  {
+    etiqueta: "Adicionales",
+    href: "/backoffice/adicionales",
+    disponible: true,
+    roles: ["Jefe de Compras", "Gerente Comercial", "Administrador"],
+  },
   {
     etiqueta: "Cotizaciones",
     href: "/backoffice/cotizaciones",
