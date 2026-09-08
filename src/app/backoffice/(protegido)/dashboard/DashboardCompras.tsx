@@ -17,7 +17,20 @@ interface InsumoFila extends InsumoCatalogo {
   ultima_actualizacion: string;
 }
 
-interface LineaActiva {
+interface DemandaConfirmada {
+  id_cotizacion: number;
+  cantidad_pax: number;
+  id_receta: number;
+  porciones_por_pax: number;
+}
+
+interface RecetaBase {
+  id_receta: number;
+  cantidad_porciones: number;
+}
+
+interface LineaReceta {
+  id_receta: number;
   id_materia_prima: number;
   cantidad_usada: number;
   id_unidad_receta: number;
@@ -43,7 +56,7 @@ export default async function DashboardCompras() {
   const [
     { data: insumos },
     { data: unidades },
-    { data: lineasActivas },
+    { data: demandaConfirmadaRpc },
     { data: parametro },
     { data: historial },
   ] = await Promise.all([
@@ -59,11 +72,11 @@ export default async function DashboardCompras() {
       .select("id_unidad, nombre, simbolo, magnitud, factor_a_base")
       .eq("activa", true)
       .returns<UnidadCatalogo[]>(),
-    supabase
-      .from("receta_materia_prima")
-      .select("id_materia_prima, cantidad_usada, id_unidad_receta, porcentaje_merma, receta:id_receta!inner(estado)")
-      .eq("receta.estado", "ACTIVA")
-      .returns<LineaActiva[]>(),
+    // Jefe de Compras no puede leer cotizacion ni menu_receta en
+    // general (matriz de roles): esta función angosta expone solo la
+    // combinación receta + porciones que exigen las cotizaciones ya
+    // confirmadas, sin abrir esas tablas por completo.
+    supabase.rpc("obtener_demanda_confirmada"),
     supabase.from("parametro_sistema").select("valor").eq("clave", "DIAS_ALERTA_PRECIO").single(),
     supabase
       .from("historico_precio_mp")
@@ -77,30 +90,67 @@ export default async function DashboardCompras() {
   const listaUnidades = unidades ?? [];
   const insumosPorId = new Map(listaInsumos.map((i) => [i.id_materia_prima, i]));
 
+  // Solo cuenta demanda real y comprometida: cotizaciones ya confirmadas
+  // (todavía no ejecutadas, según el estado). Una receta sin ninguna
+  // cotización confirmada detrás no genera alerta.
+  const demandaConfirmada = (demandaConfirmadaRpc ?? []) as DemandaConfirmada[];
+  const idsReceta = [...new Set(demandaConfirmada.map((d) => d.id_receta))];
+
+  const [{ data: recetasBase }, { data: lineasRecetas }] = idsReceta.length
+    ? await Promise.all([
+        supabase.from("receta").select("id_receta, cantidad_porciones").in("id_receta", idsReceta).returns<RecetaBase[]>(),
+        supabase
+          .from("receta_materia_prima")
+          .select("id_receta, id_materia_prima, cantidad_usada, id_unidad_receta, porcentaje_merma")
+          .in("id_receta", idsReceta)
+          .returns<LineaReceta[]>(),
+      ])
+    : [{ data: [] as RecetaBase[] }, { data: [] as LineaReceta[] }];
+
+  const porcionesBasePorReceta = new Map((recetasBase ?? []).map((r) => [r.id_receta, r.cantidad_porciones]));
+  const lineasPorReceta = new Map<number, LineaReceta[]>();
+  for (const linea of lineasRecetas ?? []) {
+    const acumuladas = lineasPorReceta.get(linea.id_receta) ?? [];
+    acumuladas.push(linea);
+    lineasPorReceta.set(linea.id_receta, acumuladas);
+  }
+
   // Cantidad necesaria (en unidad de compra de cada insumo) para cubrir
-  // todas las recetas activas que lo usan, sumando línea a línea con el
-  // mismo motor de costeo que usa el editor de recetas.
+  // todas las cotizaciones confirmadas, escalando cada receta por sus
+  // porciones_por_pax y la cantidad de invitados cotizada, con el mismo
+  // motor de costeo que usa el editor de recetas.
   const necesarioPorInsumo = new Map<number, Decimal>();
 
-  for (const linea of lineasActivas ?? []) {
-    const insumoFila = insumosPorId.get(linea.id_materia_prima);
-    const unidadReceta = listaUnidades.find((u) => u.id_unidad === linea.id_unidad_receta);
-    const insumo = insumoFila ? insumoDominio(insumoFila, listaUnidades) : null;
-    if (!insumo || !unidadReceta) continue;
+  for (const demanda of demandaConfirmada) {
+    const porcionesBase = porcionesBasePorReceta.get(demanda.id_receta);
+    if (!porcionesBase) continue;
 
-    try {
-      const { cantidadBruta } = costearLinea({
-        insumo,
-        cantidadUsada: new Decimal(linea.cantidad_usada),
-        unidadReceta: unidadDominio(unidadReceta),
-        porcentajeMerma: new Decimal(linea.porcentaje_merma),
-      });
-      const necesarioCompra = cantidadBruta.dividedBy(insumo.unidadCompra.factorABase);
-      const acumulado = necesarioPorInsumo.get(linea.id_materia_prima) ?? new Decimal(0);
-      necesarioPorInsumo.set(linea.id_materia_prima, acumulado.plus(necesarioCompra));
-    } catch {
-      // Dato inconsistente en una línea puntual: no debe tirar abajo el resto del panel.
-      continue;
+    const porcionesNecesarias = new Decimal(demanda.porciones_por_pax).times(demanda.cantidad_pax);
+
+    for (const linea of lineasPorReceta.get(demanda.id_receta) ?? []) {
+      const insumoFila = insumosPorId.get(linea.id_materia_prima);
+      const unidadReceta = listaUnidades.find((u) => u.id_unidad === linea.id_unidad_receta);
+      const insumo = insumoFila ? insumoDominio(insumoFila, listaUnidades) : null;
+      if (!insumo || !unidadReceta) continue;
+
+      try {
+        const { cantidadBruta } = costearLinea({
+          insumo,
+          cantidadUsada: new Decimal(linea.cantidad_usada),
+          unidadReceta: unidadDominio(unidadReceta),
+          porcentajeMerma: new Decimal(linea.porcentaje_merma),
+        });
+        const necesarioLinea = cantidadBruta
+          .dividedBy(porcionesBase)
+          .times(porcionesNecesarias)
+          .dividedBy(insumo.unidadCompra.factorABase);
+
+        const acumulado = necesarioPorInsumo.get(linea.id_materia_prima) ?? new Decimal(0);
+        necesarioPorInsumo.set(linea.id_materia_prima, acumulado.plus(necesarioLinea));
+      } catch {
+        // Dato inconsistente en una línea puntual: no debe tirar abajo el resto del panel.
+        continue;
+      }
     }
   }
 
@@ -149,7 +199,7 @@ export default async function DashboardCompras() {
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Insumos cuya existencia actual no llega a cubrir, con un 10% de margen, lo que requieren las
-            recetas activas que los usan.
+            cotizaciones confirmadas (todavía no ejecutadas) que los usan.
           </Typography>
           <List dense>
             {insumosStockBajo.map((fila) => (
