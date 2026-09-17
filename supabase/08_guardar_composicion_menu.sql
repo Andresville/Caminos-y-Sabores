@@ -1,12 +1,12 @@
 -- Persiste la composición de un menú (encabezado + líneas de receta) de
 -- forma atómica, igual que guardar_receta_completa(). Nunca toca
 -- coeficiente_venta: eso lo cambia únicamente actualizarCoeficienteMenu
--- desde la aplicación (Gerente Comercial/Administrador), un simple
+-- desde la aplicación (Comercial/Administrador), un simple
 -- update de una sola columna que ya queda protegido por el trigger
 -- fn_proteger_coeficiente_venta_menu existente.
 --
 -- security invoker: se apoya en las políticas RLS ya existentes de
--- menu y menu_receta (solo Chef Principal puede escribir).
+-- menu y menu_receta (solo Ayudante de cocina puede escribir).
 
 begin;
 

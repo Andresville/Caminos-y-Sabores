@@ -29,26 +29,26 @@ const ITEMS: ItemNav[] = [
     etiqueta: "Menús",
     href: "/backoffice/menus",
     disponible: true,
-    roles: ["Chef Principal", "Gerente Comercial", "Administrador"],
+    roles: ["Ayudante de cocina", "Comercial", "Administrador"],
   },
   {
     etiqueta: "Adicionales",
     href: "/backoffice/adicionales",
     disponible: true,
-    roles: ["Jefe de Compras", "Gerente Comercial", "Administrador"],
+    roles: ["Ayudante de compras", "Comercial", "Administrador"],
   },
   {
     etiqueta: "Cotizaciones",
     href: "/backoffice/cotizaciones",
     disponible: true,
-    roles: ["Gerente Comercial", "Administrador"],
+    roles: ["Comercial", "Administrador"],
   },
   { etiqueta: "Usuarios", href: "/backoffice/usuarios", disponible: true, roles: ["Administrador"] },
   {
     etiqueta: "Auditoría",
     href: "/backoffice/auditoria",
     disponible: true,
-    roles: ["Gerente Comercial", "Administrador"],
+    roles: ["Comercial", "Administrador"],
   },
 ];
 

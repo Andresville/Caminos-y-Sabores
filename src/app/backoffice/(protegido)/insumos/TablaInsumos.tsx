@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
@@ -13,9 +13,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
 import { useUsuarioActual } from "@/lib/usuario-actual/UsuarioActualProvider";
 import { formatoFecha, formatoMoneda } from "@/lib/formato";
 import DialogoInsumo from "./DialogoInsumo";
+import HistoricoPrecio from "./HistoricoPrecio";
 
 export interface Categoria {
   id_categoria: number;
@@ -71,8 +73,12 @@ export default function TablaInsumos({
   diasAlerta: number;
 }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Jefe de Compras";
+  const puedeEscribir = rol === "Ayudante de compras";
+  // Mismos roles que pueden leer historico_precio_mp por RLS (Ayudante de cocina no tiene acceso a precios).
+  const puedeVerHistorico = rol === "Ayudante de compras" || rol === "Comercial" || rol === "Administrador";
   const [modo, setModo] = useState<"nuevo" | FilaInsumo | null>(null);
+  const [expandido, setExpandido] = useState<number | null>(null);
+  const cantidadColumnas = 9 + (puedeEscribir ? 1 : 0);
 
   function unidadBaseDe(magnitud: string): Unidad | undefined {
     return unidades.find((u) => u.magnitud === magnitud && u.es_unidad_base);
@@ -125,13 +131,29 @@ export default function TablaInsumos({
                   ? insumo.costo_unitario / insumo.unidad_compra.factor_a_base
                   : null;
 
+                const desplegado = expandido === insumo.id_materia_prima;
+
                 return (
+                  <Fragment key={insumo.id_materia_prima}>
                   <TableRow
-                    key={insumo.id_materia_prima}
                     hover
                     sx={{ bgcolor: indice % 2 === 1 ? "background.default" : "background.paper" }}
                   >
-                    <TableCell>{insumo.nombre}</TableCell>
+                    <TableCell>
+                      {puedeVerHistorico ? (
+                        <Link
+                          component="button"
+                          type="button"
+                          onClick={() => setExpandido(desplegado ? null : insumo.id_materia_prima)}
+                          underline="hover"
+                          sx={{ textAlign: "left" }}
+                        >
+                          {insumo.nombre}
+                        </Link>
+                      ) : (
+                        insumo.nombre
+                      )}
+                    </TableCell>
                     <TableCell>{insumo.categoria?.nombre ?? "—"}</TableCell>
                     <TableCell>{insumo.unidad_compra?.simbolo ?? "—"}</TableCell>
                     <TableCell align="right">{formatoMoneda.format(insumo.costo_unitario)}</TableCell>
@@ -165,6 +187,18 @@ export default function TablaInsumos({
                       </TableCell>
                     )}
                   </TableRow>
+                  {puedeVerHistorico && (
+                    <TableRow sx={{ bgcolor: indice % 2 === 1 ? "background.default" : "background.paper" }}>
+                      <TableCell colSpan={cantidadColumnas} sx={{ py: 0, borderTop: desplegado ? undefined : "none" }}>
+                        <Collapse in={desplegado} unmountOnExit>
+                          <Box sx={{ px: 1 }}>
+                            {desplegado && <HistoricoPrecio idMateriaPrima={insumo.id_materia_prima} />}
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
             </TableBody>

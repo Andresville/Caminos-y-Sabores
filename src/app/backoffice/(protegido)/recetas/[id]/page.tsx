@@ -21,7 +21,7 @@ export default async function PaginaEditorReceta({
 
   const supabase = await createClient();
   const usuarioActual = await obtenerUsuarioActual();
-  const soloLectura = usuarioActual?.rol !== "Chef Principal";
+  const soloLectura = usuarioActual?.rol !== "Ayudante de cocina";
 
   const [
     { data: receta, error: errorReceta },

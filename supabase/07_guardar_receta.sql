@@ -9,7 +9,7 @@
 -- el cliente. Esta función solo persiste el resultado.
 --
 -- security invoker: se apoya en las políticas RLS ya existentes de
--- receta y receta_materia_prima (solo Chef Principal puede escribir),
+-- receta y receta_materia_prima (solo Ayudante de cocina puede escribir),
 -- no repite ese chequeo acá.
 
 begin;

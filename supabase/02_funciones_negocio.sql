@@ -2,7 +2,7 @@
 -- Caminos y Sabores — Segunda parte del esquema: funciones de negocio
 -- que cierran puntos abiertos del primer script (supabase/schema.sql):
 --
---   1. Protege menu.coeficiente_venta a nivel de columna (solo Gerente
+--   1. Protege menu.coeficiente_venta a nivel de columna (solo
 --      Comercial o Administrador pueden modificarlo).
 --   2. Función para actualizar el precio de un insumo, exigiendo un
 --      motivo cuando la variación supera el umbral configurado y
@@ -25,9 +25,9 @@ language plpgsql
 as $$
 begin
   if new.coeficiente_venta is distinct from old.coeficiente_venta
-     and rol_actual() not in ('Gerente Comercial', 'Administrador')
+     and rol_actual() not in ('Comercial', 'Administrador')
   then
-    raise exception 'Solo Gerente Comercial o Administrador pueden modificar el coeficiente de venta del menú';
+    raise exception 'Solo Comercial o Administrador pueden modificar el coeficiente de venta del menú';
   end if;
   return new;
 end;
@@ -60,8 +60,8 @@ declare
   v_umbral numeric(7,2);
   v_resultado public.materia_prima;
 begin
-  if rol_actual() <> 'Jefe de Compras' then
-    raise exception 'Solo Jefe de Compras puede actualizar el precio de un insumo';
+  if rol_actual() <> 'Ayudante de compras' then
+    raise exception 'Solo Ayudante de compras puede actualizar el precio de un insumo';
   end if;
 
   if p_costo_nuevo <= 0 then

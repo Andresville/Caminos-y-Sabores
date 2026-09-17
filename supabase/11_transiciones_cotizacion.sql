@@ -9,7 +9,7 @@
 --
 -- Esto se suma al trigger fn_proteger_cotizacion_emitida (que protege
 -- los campos congelados) y a la política RLS existente (que ya
--- restringe estos cambios a Gerente Comercial).
+-- restringe estos cambios a Comercial).
 
 begin;
 

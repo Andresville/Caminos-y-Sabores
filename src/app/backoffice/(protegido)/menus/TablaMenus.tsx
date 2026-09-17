@@ -28,7 +28,7 @@ export interface FilaMenu {
 
 export default function TablaMenus({ menus }: { menus: FilaMenu[] }) {
   const { rol } = useUsuarioActual();
-  const puedeCrear = rol === "Chef Principal";
+  const puedeCrear = rol === "Ayudante de cocina";
 
   return (
     <>

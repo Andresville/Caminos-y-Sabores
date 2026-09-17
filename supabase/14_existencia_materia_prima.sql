@@ -1,5 +1,5 @@
 -- Existencia actual de cada insumo (unidad de compra), cargada
--- manualmente por Jefe de Compras desde el alta/edición del insumo.
+-- manualmente por Ayudante de compras desde el alta/edición del insumo.
 -- Sirve para poder alertar en su Dashboard cuando el stock disponible
 -- no llega a cubrir, con un 10% de margen, lo que requieren las
 -- recetas activas que usan ese insumo.

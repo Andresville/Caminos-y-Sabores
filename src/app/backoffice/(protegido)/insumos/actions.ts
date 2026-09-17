@@ -7,6 +7,28 @@ export interface EstadoFormulario {
   error?: string;
 }
 
+export interface FilaHistoricoPrecio {
+  id_historico: number;
+  costo_anterior: number;
+  costo_nuevo: number;
+  variacion_pct: number;
+  motivo: string | null;
+  fecha_cambio: string;
+}
+
+/** Historial de cambios de precio de un insumo, más reciente primero. RLS ya limita esto a los roles que pueden ver precios. */
+export async function obtenerHistoricoPrecio(idMateriaPrima: number): Promise<FilaHistoricoPrecio[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("historico_precio_mp")
+    .select("id_historico, costo_anterior, costo_nuevo, variacion_pct, motivo, fecha_cambio")
+    .eq("id_materia_prima", idMateriaPrima)
+    .order("fecha_cambio", { ascending: false });
+
+  return data ?? [];
+}
+
 function mensajeAmigable(codigo: string | undefined, mensajeOriginal: string): string {
   if (codigo === "23505") {
     return "Ya existe un insumo con ese nombre en esa categoría.";

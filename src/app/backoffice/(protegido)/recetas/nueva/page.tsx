@@ -9,7 +9,7 @@ import FormularioNuevaReceta from "./FormularioNuevaReceta";
 export default async function PaginaNuevaReceta() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Chef Principal") {
+  if (usuarioActual?.rol !== "Ayudante de cocina") {
     redirect("/backoffice/recetas");
   }
 

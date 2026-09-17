@@ -1,8 +1,8 @@
--- Gerente Comercial/Administrador pueden leer auditoria (RLS ya
+-- Comercial/Administrador pueden leer auditoria (RLS ya
 -- existente), pero auditoria.id_usuario solo se resuelve a un nombre
 -- si se puede leer la tabla usuario del que hizo el cambio, y
 -- usuario_select_propio solo deja ver la fila propia (o a
--- Administrador). Sin esto, Gerente Comercial vería el registro pero
+-- Administrador). Sin esto, Comercial vería el registro pero
 -- no "quién" lo hizo — justamente el dato central de un log de
 -- auditoría.
 --
@@ -31,7 +31,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
-  if rol_actual() not in ('Gerente Comercial', 'Administrador') then
+  if rol_actual() not in ('Comercial', 'Administrador') then
     raise exception 'No tiene permiso para consultar la auditoría';
   end if;
 

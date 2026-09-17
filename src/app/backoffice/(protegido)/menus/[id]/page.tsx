@@ -21,13 +21,13 @@ export default async function PaginaEditorMenu({
 
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol === "Jefe de Compras") {
+  if (usuarioActual?.rol === "Ayudante de compras") {
     redirect("/backoffice");
   }
 
-  const puedeEditarComposicion = usuarioActual?.rol === "Chef Principal";
+  const puedeEditarComposicion = usuarioActual?.rol === "Ayudante de cocina";
   const puedeEditarCoeficiente =
-    usuarioActual?.rol === "Gerente Comercial" || usuarioActual?.rol === "Administrador";
+    usuarioActual?.rol === "Comercial" || usuarioActual?.rol === "Administrador";
 
   const supabase = await createClient();
 

@@ -15,7 +15,7 @@ export default async function PaginaCotizaciones({
 }) {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Gerente Comercial" && usuarioActual?.rol !== "Administrador") {
+  if (usuarioActual?.rol !== "Comercial" && usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice");
   }
 

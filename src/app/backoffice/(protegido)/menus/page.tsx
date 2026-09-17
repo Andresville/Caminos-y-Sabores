@@ -25,7 +25,7 @@ interface LineaMenuDb {
 export default async function PaginaMenus() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol === "Jefe de Compras") {
+  if (usuarioActual?.rol === "Ayudante de compras") {
     redirect("/backoffice");
   }
 

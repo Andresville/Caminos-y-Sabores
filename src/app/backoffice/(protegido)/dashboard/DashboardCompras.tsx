@@ -72,7 +72,7 @@ export default async function DashboardCompras() {
       .select("id_unidad, nombre, simbolo, magnitud, factor_a_base")
       .eq("activa", true)
       .returns<UnidadCatalogo[]>(),
-    // Jefe de Compras no puede leer cotizacion ni menu_receta en
+    // Ayudante de compras no puede leer cotizacion ni menu_receta en
     // general (matriz de roles): esta función angosta expone solo la
     // combinación receta + porciones que exigen las cotizaciones ya
     // confirmadas, sin abrir esas tablas por completo.

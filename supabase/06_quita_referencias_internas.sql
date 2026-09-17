@@ -54,8 +54,8 @@ declare
   v_umbral numeric(7,2);
   v_resultado public.materia_prima;
 begin
-  if rol_actual() <> 'Jefe de Compras' then
-    raise exception 'Solo Jefe de Compras puede actualizar el precio de un insumo';
+  if rol_actual() <> 'Ayudante de compras' then
+    raise exception 'Solo Ayudante de compras puede actualizar el precio de un insumo';
   end if;
 
   if p_costo_nuevo <= 0 then

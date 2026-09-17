@@ -40,7 +40,7 @@ const etiquetaEstado: Record<FilaReceta["estado"], string> = {
 
 export default function TablaRecetas({ recetas }: { recetas: FilaReceta[] }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Chef Principal";
+  const puedeEscribir = rol === "Ayudante de cocina";
 
   return (
     <>

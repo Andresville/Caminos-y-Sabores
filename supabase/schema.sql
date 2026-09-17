@@ -195,8 +195,8 @@ create table public.receta_materia_prima (
 create index idx_receta_mp_materia_prima on public.receta_materia_prima (id_materia_prima);
 
 -- ADVERTENCIA (punto abierto, ver mensaje): la matriz de permisos
--- separa "composición de menús" (Chef, escritura) de "coeficiente de
--- venta del menú" (solo Gerente Comercial, escritura). RLS restringe
+-- separa "composición de menús" (Ayudante de cocina, escritura) de "coeficiente de
+-- venta del menú" (solo Comercial, escritura). RLS restringe
 -- filas, no columnas individuales dentro de la misma fila, así que
 -- esta separación fina para coeficiente_venta NO está aplicada
 -- todavía.
@@ -392,103 +392,103 @@ alter table public.servicio_adicional  enable row level security;
 alter table public.cotizacion          enable row level security;
 alter table public.cotizacion_detalle  enable row level security;
 
--- ---- unidad_medida (escritura de Jefe de Compras o Administrador) ----
+-- ---- unidad_medida (escritura de Ayudante de compras o Administrador) ----
 create policy unidad_medida_select on public.unidad_medida for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy unidad_medida_insert on public.unidad_medida for insert to authenticated
-  with check (rol_actual() in ('Jefe de Compras','Administrador'));
+  with check (rol_actual() in ('Ayudante de compras','Administrador'));
 create policy unidad_medida_update on public.unidad_medida for update to authenticated
-  using (rol_actual() in ('Jefe de Compras','Administrador'))
-  with check (rol_actual() in ('Jefe de Compras','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Administrador'))
+  with check (rol_actual() in ('Ayudante de compras','Administrador'));
 
 -- ---- categoria_insumo / proveedor (mismo patrón que insumos) ----
 create policy categoria_insumo_select on public.categoria_insumo for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy categoria_insumo_insert on public.categoria_insumo for insert to authenticated
-  with check (rol_actual() = 'Jefe de Compras');
+  with check (rol_actual() = 'Ayudante de compras');
 create policy categoria_insumo_update on public.categoria_insumo for update to authenticated
-  using (rol_actual() = 'Jefe de Compras')
-  with check (rol_actual() = 'Jefe de Compras');
+  using (rol_actual() = 'Ayudante de compras')
+  with check (rol_actual() = 'Ayudante de compras');
 
 create policy proveedor_select on public.proveedor for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy proveedor_insert on public.proveedor for insert to authenticated
-  with check (rol_actual() = 'Jefe de Compras');
+  with check (rol_actual() = 'Ayudante de compras');
 create policy proveedor_update on public.proveedor for update to authenticated
-  using (rol_actual() = 'Jefe de Compras')
-  with check (rol_actual() = 'Jefe de Compras');
+  using (rol_actual() = 'Ayudante de compras')
+  with check (rol_actual() = 'Ayudante de compras');
 
 -- ---- materia_prima ----
 create policy materia_prima_select on public.materia_prima for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy materia_prima_insert on public.materia_prima for insert to authenticated
-  with check (rol_actual() = 'Jefe de Compras');
+  with check (rol_actual() = 'Ayudante de compras');
 create policy materia_prima_update on public.materia_prima for update to authenticated
-  using (rol_actual() = 'Jefe de Compras')
-  with check (rol_actual() = 'Jefe de Compras');
+  using (rol_actual() = 'Ayudante de compras')
+  with check (rol_actual() = 'Ayudante de compras');
 
 -- ---- historico_precio_mp (solo lectura vía RLS; el insert lo hace el backend) ----
 create policy historico_precio_select on public.historico_precio_mp for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Comercial','Administrador'));
 
 -- ---- receta / receta_materia_prima ----
 create policy receta_select on public.receta for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy receta_insert on public.receta for insert to authenticated
-  with check (rol_actual() = 'Chef Principal');
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy receta_update on public.receta for update to authenticated
-  using (rol_actual() = 'Chef Principal')
-  with check (rol_actual() = 'Chef Principal');
+  using (rol_actual() = 'Ayudante de cocina')
+  with check (rol_actual() = 'Ayudante de cocina');
 
 create policy receta_mp_select on public.receta_materia_prima for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Ayudante de cocina','Comercial','Administrador'));
 create policy receta_mp_insert on public.receta_materia_prima for insert to authenticated
-  with check (rol_actual() = 'Chef Principal');
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy receta_mp_update on public.receta_materia_prima for update to authenticated
-  using (rol_actual() = 'Chef Principal')
-  with check (rol_actual() = 'Chef Principal');
+  using (rol_actual() = 'Ayudante de cocina')
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy receta_mp_delete on public.receta_materia_prima for delete to authenticated
-  using (rol_actual() = 'Chef Principal');
+  using (rol_actual() = 'Ayudante de cocina');
 
 -- ---- menu / menu_receta (JefeCompras no tiene acceso) ----
 create policy menu_select on public.menu for select to authenticated
-  using (rol_actual() in ('Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de cocina','Comercial','Administrador'));
 create policy menu_insert on public.menu for insert to authenticated
-  with check (rol_actual() = 'Chef Principal');
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy menu_update on public.menu for update to authenticated
-  using (rol_actual() in ('Chef Principal','Gerente Comercial','Administrador'))
-  with check (rol_actual() in ('Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de cocina','Comercial','Administrador'))
+  with check (rol_actual() in ('Ayudante de cocina','Comercial','Administrador'));
 
 create policy menu_receta_select on public.menu_receta for select to authenticated
-  using (rol_actual() in ('Chef Principal','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de cocina','Comercial','Administrador'));
 create policy menu_receta_insert on public.menu_receta for insert to authenticated
-  with check (rol_actual() = 'Chef Principal');
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy menu_receta_update on public.menu_receta for update to authenticated
-  using (rol_actual() = 'Chef Principal')
-  with check (rol_actual() = 'Chef Principal');
+  using (rol_actual() = 'Ayudante de cocina')
+  with check (rol_actual() = 'Ayudante de cocina');
 create policy menu_receta_delete on public.menu_receta for delete to authenticated
-  using (rol_actual() = 'Chef Principal');
+  using (rol_actual() = 'Ayudante de cocina');
 
 -- ---- servicio_adicional ----
 create policy servicio_adicional_select on public.servicio_adicional for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Comercial','Administrador'));
 create policy servicio_adicional_insert on public.servicio_adicional for insert to authenticated
-  with check (rol_actual() in ('Jefe de Compras','Gerente Comercial'));
+  with check (rol_actual() in ('Ayudante de compras','Comercial'));
 create policy servicio_adicional_update on public.servicio_adicional for update to authenticated
-  using (rol_actual() in ('Jefe de Compras','Gerente Comercial'))
-  with check (rol_actual() in ('Jefe de Compras','Gerente Comercial'));
+  using (rol_actual() in ('Ayudante de compras','Comercial'))
+  with check (rol_actual() in ('Ayudante de compras','Comercial'));
 
 -- ---- cotizacion / cotizacion_detalle ----
 -- Sin política de INSERT: la emisión la hace el backend con la
 -- service_role key (bypassa RLS), nunca el cliente directo.
 create policy cotizacion_select on public.cotizacion for select to authenticated
-  using (rol_actual() in ('Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Comercial','Administrador'));
 create policy cotizacion_update_estado on public.cotizacion for update to authenticated
-  using (rol_actual() = 'Gerente Comercial')
-  with check (rol_actual() = 'Gerente Comercial');
+  using (rol_actual() = 'Comercial')
+  with check (rol_actual() = 'Comercial');
 
 create policy cotizacion_detalle_select on public.cotizacion_detalle for select to authenticated
-  using (rol_actual() in ('Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Comercial','Administrador'));
 
 -- ---- usuario ----
 -- Cualquier usuario autenticado puede ver su propio registro (para que
@@ -514,7 +514,7 @@ create policy rol_permiso_admin_all on public.rol_permiso for all to authenticat
 -- ---- parametro_sistema ("E parcial": cada parámetro define su propio
 -- rol autorizado en modificable_por_rol; Administrador siempre puede) ----
 create policy parametro_select on public.parametro_sistema for select to authenticated
-  using (rol_actual() in ('Jefe de Compras','Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Ayudante de compras','Comercial','Administrador'));
 create policy parametro_update on public.parametro_sistema for update to authenticated
   using (rol_actual() = 'Administrador' or rol_actual() = modificable_por_rol)
   with check (rol_actual() = 'Administrador' or rol_actual() = modificable_por_rol);
@@ -523,10 +523,10 @@ create policy parametro_insert_admin on public.parametro_sistema for insert to a
 create policy parametro_delete_admin on public.parametro_sistema for delete to authenticated
   using (rol_actual() = 'Administrador');
 
--- ---- auditoria (Gerente Comercial y Administrador, solo lectura;
+-- ---- auditoria (Comercial y Administrador, solo lectura;
 -- la escritura la hace el backend / triggers del sistema) ----
 create policy auditoria_select on public.auditoria for select to authenticated
-  using (rol_actual() in ('Gerente Comercial','Administrador'));
+  using (rol_actual() in ('Comercial','Administrador'));
 
 -- =====================================================================
 -- 10. Datos semilla
@@ -546,9 +546,9 @@ insert into public.unidad_medida (nombre, simbolo, magnitud, factor_a_base, es_u
 -- Roles del sistema. "Usuario Público" es un rol de referencia:
 -- no requiere autenticación y no se asigna a ninguna fila de usuario.
 insert into public.rol (nombre_rol, descripcion) values
-  ('Jefe de Compras', 'Mantiene el catálogo de insumos, sus costos y el costo de los servicios adicionales.'),
-  ('Chef Principal', 'Crea y mantiene recetas y compone menús desde el punto de vista gastronómico.'),
-  ('Gerente Comercial', 'Fija coeficientes de venta, realiza el seguimiento de cotizaciones y gestiona su estado.'),
+  ('Ayudante de compras', 'Mantiene el catálogo de insumos, sus costos y el costo de los servicios adicionales.'),
+  ('Ayudante de cocina', 'Crea y mantiene recetas y compone menús desde el punto de vista gastronómico.'),
+  ('Comercial', 'Fija coeficientes de venta, realiza el seguimiento de cotizaciones y gestiona su estado.'),
   ('Administrador', 'Administra usuarios, roles y parámetros. Consulta la auditoría.'),
   ('Usuario Público', 'Rol de referencia para el canal público; no requiere autenticación ni fila en usuario.');
 
@@ -556,15 +556,15 @@ insert into public.rol (nombre_rol, descripcion) values
 -- de referencia, no cifras validadas por el negocio.
 insert into public.parametro_sistema (clave, valor, tipo_dato, descripcion, modificable_por_rol) values
   ('IVA_PORCENTAJE', '21.00', 'PORCENTAJE', 'Alícuota de IVA aplicada al precio neto.', 'Administrador'),
-  ('GASTOS_GENERALES_PCT', '12.00', 'PORCENTAJE', 'Gastos generales sobre el costo directo. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('COEFICIENTE_VENTA_DEFECTO', '1.45', 'DECIMAL', 'Coeficiente de venta por defecto. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('PAX_POR_MOZO', '15', 'ENTERO', 'Cantidad de invitados por mozo. PENDIENTE DE FIRMA.', 'Gerente Comercial'),
-  ('COSTO_MOZO_EVENTO', '85000.00', 'DECIMAL', 'Costo por mozo por evento. PENDIENTE DE FIRMA.', 'Jefe de Compras'),
-  ('PAX_MINIMO_EVENTO', '20', 'ENTERO', 'Mínimo de invitados para cotización automática.', 'Gerente Comercial'),
-  ('PAX_MAXIMO_AUTOMATICO', '300', 'ENTERO', 'Máximo de invitados para cotización automática.', 'Gerente Comercial'),
-  ('VALIDEZ_COTIZACION_DIAS', '15', 'ENTERO', 'Días de validez de una cotización.', 'Gerente Comercial'),
-  ('DIAS_ALERTA_PRECIO', '30', 'ENTERO', 'Días para considerar un precio desactualizado.', 'Jefe de Compras'),
+  ('GASTOS_GENERALES_PCT', '12.00', 'PORCENTAJE', 'Gastos generales sobre el costo directo. PENDIENTE DE FIRMA.', 'Comercial'),
+  ('COEFICIENTE_VENTA_DEFECTO', '1.45', 'DECIMAL', 'Coeficiente de venta por defecto. PENDIENTE DE FIRMA.', 'Comercial'),
+  ('PAX_POR_MOZO', '15', 'ENTERO', 'Cantidad de invitados por mozo. PENDIENTE DE FIRMA.', 'Comercial'),
+  ('COSTO_MOZO_EVENTO', '85000.00', 'DECIMAL', 'Costo por mozo por evento. PENDIENTE DE FIRMA.', 'Ayudante de compras'),
+  ('PAX_MINIMO_EVENTO', '20', 'ENTERO', 'Mínimo de invitados para cotización automática.', 'Comercial'),
+  ('PAX_MAXIMO_AUTOMATICO', '300', 'ENTERO', 'Máximo de invitados para cotización automática.', 'Comercial'),
+  ('VALIDEZ_COTIZACION_DIAS', '15', 'ENTERO', 'Días de validez de una cotización.', 'Comercial'),
+  ('DIAS_ALERTA_PRECIO', '30', 'ENTERO', 'Días para considerar un precio desactualizado.', 'Ayudante de compras'),
   ('UMBRAL_MOTIVO_PRECIO_PCT', '20.00', 'PORCENTAJE', 'Umbral de variación que exige motivo.', 'Administrador'),
-  ('REDONDEO_PRECIO_FINAL', '100', 'ENTERO', 'Múltiplo de redondeo comercial del precio final.', 'Gerente Comercial');
+  ('REDONDEO_PRECIO_FINAL', '100', 'ENTERO', 'Múltiplo de redondeo comercial del precio final.', 'Comercial');
 
 commit;

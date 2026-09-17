@@ -1,6 +1,6 @@
--- Jefe de Compras no tiene lectura sobre cotizacion ni menu_receta
--- (matriz de roles: eso es de Gerente Comercial/Administrador y Chef
--- Principal respectivamente). Pero para la alerta de stock bajo de su
+-- Ayudante de compras no tiene lectura sobre cotizacion ni menu_receta
+-- (matriz de roles: eso es de Comercial/Administrador y Ayudante de
+-- cocina respectivamente). Pero para la alerta de stock bajo de su
 -- Dashboard necesita saber, de las cotizaciones YA CONFIRMADAS (es
 -- decir, comprometidas y todavía no ejecutadas), qué recetas exigen y
 -- en qué cantidad de porciones.
@@ -10,7 +10,7 @@
 -- general. El resto del cálculo (unidades, merma, conversión a unidad
 -- de compra) se hace en la aplicación con el mismo motor de costeo que
 -- ya usa el editor de recetas, a partir de receta/receta_materia_prima,
--- que Jefe de Compras ya puede leer.
+-- que Ayudante de compras ya puede leer.
 
 begin;
 
@@ -27,7 +27,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
-  if rol_actual() not in ('Jefe de Compras', 'Gerente Comercial', 'Administrador') then
+  if rol_actual() not in ('Ayudante de compras', 'Comercial', 'Administrador') then
     raise exception 'No tiene permiso para consultar la demanda confirmada';
   end if;
 
