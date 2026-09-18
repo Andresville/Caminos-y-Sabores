@@ -94,6 +94,31 @@ export async function guardarComposicionMenu(datos: {
   return {};
 }
 
+/**
+ * La foto se sube directo a Storage desde el navegador (misma RLS);
+ * esto solo guarda la URL resultante contra (id_menu, id_receta), o la
+ * borra si imagenUrl es null. Se guarda contra la receta, no contra la
+ * línea (menu_receta.id_menu_receta), porque esos ids no son estables
+ * entre un guardado de composición y el siguiente.
+ */
+export async function actualizarFotoPlatoMenu(
+  idMenu: number,
+  idReceta: number,
+  imagenUrl: string | null,
+): Promise<EstadoFormulario> {
+  const supabase = await createClient();
+
+  const { error } = imagenUrl
+    ? await supabase.from("menu_foto_plato").upsert({ id_menu: idMenu, id_receta: idReceta, imagen_url: imagenUrl })
+    : await supabase.from("menu_foto_plato").delete().eq("id_menu", idMenu).eq("id_receta", idReceta);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/backoffice/menus");
+  revalidatePath(`/backoffice/menus/${idMenu}`);
+  return {};
+}
+
 export async function actualizarCoeficienteMenu(
   idMenu: number,
   coeficienteVenta: number,

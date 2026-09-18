@@ -36,6 +36,7 @@ export default async function PaginaEditorMenu({
     { data: lineas },
     { data: recetas },
     { data: parametros },
+    { data: fotos },
   ] = await Promise.all([
     supabase
       .from("menu")
@@ -59,6 +60,7 @@ export default async function PaginaEditorMenu({
       .from("parametro_sistema")
       .select("clave, valor")
       .in("clave", ["GASTOS_GENERALES_PCT", "IVA_PORCENTAJE", "REDONDEO_PRECIO_FINAL"]),
+    supabase.from("menu_foto_plato").select("id_receta, imagen_url").eq("id_menu", idMenu),
   ]);
 
   if (errorMenu || !menu) {
@@ -71,6 +73,11 @@ export default async function PaginaEditorMenu({
     ivaPorcentaje: mapaParametros.get("IVA_PORCENTAJE") ?? 0,
     redondeoPrecioFinal: mapaParametros.get("REDONDEO_PRECIO_FINAL") ?? 1,
   };
+
+  const fotosPorReceta: Record<number, string> = {};
+  for (const foto of fotos ?? []) {
+    fotosPorReceta[foto.id_receta] = foto.imagen_url;
+  }
 
   return (
     <>
@@ -86,6 +93,7 @@ export default async function PaginaEditorMenu({
           parametrosComerciales={parametrosComerciales}
           puedeEditarComposicion={puedeEditarComposicion}
           puedeEditarCoeficiente={puedeEditarCoeficiente}
+          fotosPorRecetaIniciales={fotosPorReceta}
         />
       </Box>
     </>

@@ -19,11 +19,15 @@ import TableCell from "@mui/material/TableCell";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import CloseIcon from "@mui/icons-material/Close";
+import Avatar from "@mui/material/Avatar";
+import Link from "@mui/material/Link";
+import AddIcon from "@mui/icons-material/Add";
 import { formatoMoneda } from "@/lib/formato";
 import { margenSobreVenta } from "@/domain/costeo";
+import { createClient as crearClienteNavegador } from "@/lib/supabase/client";
 import { TIPOS_PLATO } from "../../recetas/mapeo";
 import { calcularPrecioMenu, type ParametrosComerciales } from "../calculo";
-import { actualizarCoeficienteMenu, guardarComposicionMenu } from "../actions";
+import { actualizarCoeficienteMenu, actualizarFotoPlatoMenu, guardarComposicionMenu } from "../actions";
 
 export interface MenuExistente {
   id_menu: number;
@@ -59,6 +63,11 @@ function nuevaClave(): string {
   return Math.random().toString(36).slice(2);
 }
 
+// Función aparte (no inline) para que el linter de reglas de React no la confunda con una llamada impura durante el render: solo se invoca desde un handler de subida de archivo.
+function marcaDeCache(): number {
+  return Date.now();
+}
+
 function filaDesdeExistente(linea: LineaMenuExistente): FilaEditable {
   return {
     clave: nuevaClave(),
@@ -75,6 +84,7 @@ export default function EditorMenu({
   parametrosComerciales,
   puedeEditarComposicion,
   puedeEditarCoeficiente,
+  fotosPorRecetaIniciales,
 }: {
   menu: MenuExistente;
   lineasIniciales: LineaMenuExistente[];
@@ -82,6 +92,7 @@ export default function EditorMenu({
   parametrosComerciales: ParametrosComerciales;
   puedeEditarComposicion: boolean;
   puedeEditarCoeficiente: boolean;
+  fotosPorRecetaIniciales: Record<number, string>;
 }) {
   const router = useRouter();
 
@@ -91,11 +102,62 @@ export default function EditorMenu({
   const [estado, setEstado] = useState(menu.estado);
   const [lineas, setLineas] = useState<FilaEditable[]>(lineasIniciales.map(filaDesdeExistente));
   const [coeficienteVenta, setCoeficienteVenta] = useState(String(menu.coeficiente_venta));
+  const [fotos, setFotos] = useState<Record<number, string>>(fotosPorRecetaIniciales);
+  const [subiendoFotoDe, setSubiendoFotoDe] = useState<number | null>(null);
 
   const [errorComposicion, setErrorComposicion] = useState<string | null>(null);
   const [errorCoeficiente, setErrorCoeficiente] = useState<string | null>(null);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const [guardandoComposicion, iniciarGuardadoComposicion] = useTransition();
   const [guardandoCoeficiente, iniciarGuardadoCoeficiente] = useTransition();
+
+  async function subirFoto(idReceta: number, archivo: File) {
+    setErrorFoto(null);
+    setSubiendoFotoDe(idReceta);
+
+    const supabaseNavegador = crearClienteNavegador();
+    const extension = archivo.name.split(".").pop() || "jpg";
+    const ruta = `menu-${menu.id_menu}-receta-${idReceta}.${extension}`;
+
+    const { error: errorSubida } = await supabaseNavegador.storage
+      .from("menu-imagenes")
+      .upload(ruta, archivo, { upsert: true });
+
+    if (errorSubida) {
+      setErrorFoto(errorSubida.message);
+      setSubiendoFotoDe(null);
+      return;
+    }
+
+    const { data } = supabaseNavegador.storage.from("menu-imagenes").getPublicUrl(ruta);
+    // Cache-bust: la ruta no cambia al reemplazar la foto, así que sin esto el navegador seguiría mostrando la vieja.
+    const urlConVersion = `${data.publicUrl}?v=${marcaDeCache()}`;
+
+    const resultado = await actualizarFotoPlatoMenu(menu.id_menu, idReceta, urlConVersion);
+    setSubiendoFotoDe(null);
+
+    if (resultado.error) {
+      setErrorFoto(resultado.error);
+      return;
+    }
+    setFotos((actual) => ({ ...actual, [idReceta]: urlConVersion }));
+  }
+
+  async function quitarFoto(idReceta: number) {
+    setErrorFoto(null);
+    setSubiendoFotoDe(idReceta);
+    const resultado = await actualizarFotoPlatoMenu(menu.id_menu, idReceta, null);
+    setSubiendoFotoDe(null);
+    if (resultado.error) {
+      setErrorFoto(resultado.error);
+      return;
+    }
+    setFotos((actual) => {
+      const restantes = { ...actual };
+      delete restantes[idReceta];
+      return restantes;
+    });
+  }
 
   function agregarLinea() {
     setLineas((actual) => [
@@ -223,6 +285,8 @@ export default function EditorMenu({
         />
       </Paper>
 
+      {errorFoto && <Alert severity="error">{errorFoto}</Alert>}
+
       {errorComposicion && <Alert severity="error">{errorComposicion}</Alert>}
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -251,9 +315,10 @@ export default function EditorMenu({
               Todavía no agregaste recetas.
             </Typography>
           ) : (
-            <Table sx={{ minWidth: 850 }}>
+            <Table sx={{ minWidth: 920 }}>
               <TableHead>
                 <TableRow>
+                  <TableCell sx={{ width: 72 }}>Foto</TableCell>
                   <TableCell sx={{ width: 160 }}>Paso</TableCell>
                   <TableCell>Receta</TableCell>
                   <TableCell align="right" sx={{ width: 150 }}>
@@ -274,8 +339,69 @@ export default function EditorMenu({
                   const porciones = Number(linea.porciones_por_pax) || 0;
                   const subtotal = receta ? receta.costo_por_porcion * porciones : null;
 
+                  const fotoActual = linea.id_receta !== "" ? fotos[linea.id_receta] : undefined;
+                  const subiendoEstaFoto = linea.id_receta !== "" && subiendoFotoDe === linea.id_receta;
+
                   return (
                     <TableRow key={linea.clave}>
+                      <TableCell>
+                        {linea.id_receta === "" ? (
+                          <Avatar variant="rounded" sx={{ width: 40, height: 40, bgcolor: "background.default" }} />
+                        ) : puedeEditarComposicion ? (
+                          <Stack spacing={0.5} sx={{ alignItems: "center" }}>
+                            <Button
+                              component="label"
+                              sx={{ p: 0, minWidth: 0, borderRadius: 1 }}
+                              disabled={subiendoEstaFoto}
+                            >
+                              <Avatar
+                                src={fotoActual}
+                                variant="rounded"
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  bgcolor: "background.default",
+                                  color: "text.secondary",
+                                }}
+                              >
+                                {!fotoActual && <AddIcon fontSize="small" />}
+                              </Avatar>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                hidden
+                                onChange={(evento) => {
+                                  const archivo = evento.target.files?.[0];
+                                  if (archivo && linea.id_receta !== "") subirFoto(linea.id_receta, archivo);
+                                  evento.target.value = "";
+                                }}
+                              />
+                            </Button>
+                            {!fotoActual && (
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+                                Agregar
+                              </Typography>
+                            )}
+                            {fotoActual && (
+                              <Link
+                                component="button"
+                                type="button"
+                                onClick={() => linea.id_receta !== "" && quitarFoto(linea.id_receta)}
+                                underline="hover"
+                                sx={{ fontSize: 11 }}
+                              >
+                                Quitar
+                              </Link>
+                            )}
+                          </Stack>
+                        ) : (
+                          <Avatar
+                            src={fotoActual}
+                            variant="rounded"
+                            sx={{ width: 40, height: 40, bgcolor: "background.default" }}
+                          />
+                        )}
+                      </TableCell>
                       <TableCell>
                         <TextField
                           size="small"
