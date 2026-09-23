@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Lora } from "next/font/google";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import ThemeRegistry from "./ThemeRegistry";
+import { CarritoProvider } from "@/lib/carrito-cliente/CarritoProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,17 +15,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Caminos y Sabores",
+  title: "Sabores & Eventos",
   description: "Sistema de gestión de costos gastronómicos y cotización de eventos.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${lora.variable}`}>
       <body>
         <AppRouterCacheProvider>
-          <ThemeRegistry>{children}</ThemeRegistry>
+          <ThemeRegistry>
+            <CarritoProvider>{children}</CarritoProvider>
+          </ThemeRegistry>
         </AppRouterCacheProvider>
       </body>
     </html>

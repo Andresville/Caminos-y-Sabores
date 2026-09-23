@@ -1,5 +1,5 @@
 -- =====================================================================
--- Caminos y Sabores — Esquema inicial de base de datos (Supabase/Postgres)
+-- Sabores y Eventos — Esquema inicial de base de datos (Supabase/Postgres)
 -- Modelo de datos y políticas de acceso por rol.
 --
 -- Cómo ejecutar: copiar todo este archivo y pegarlo en el SQL Editor

@@ -17,7 +17,7 @@ export default function PaginaLogin() {
         }}
       >
         <Typography variant="h3" sx={{ fontWeight: 700 }}>
-          Caminos y Sabores
+          Sabores &amp; Eventos
         </Typography>
         <Typography variant="h6" sx={{ color: "grey.400", mt: 1 }}>
           Catering &amp; Eventos

@@ -55,7 +55,7 @@ export default function DocumentoCotizacion({ datos }: { datos: DatosPdfCotizaci
       <Page size="A4" style={estilos.page}>
         <View style={estilos.encabezado}>
           <View>
-            <Text style={estilos.marca}>Caminos y Sabores</Text>
+            <Text style={estilos.marca}>Sabores & Eventos</Text>
             <Text>Catering y Eventos</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>

@@ -22,6 +22,8 @@ export default async function PaginaEditorReceta({
   const supabase = await createClient();
   const usuarioActual = await obtenerUsuarioActual();
   const soloLectura = usuarioActual?.rol !== "Ayudante de cocina";
+  const puedeEditarVentaIndividual =
+    usuarioActual?.rol === "Comercial" || usuarioActual?.rol === "Administrador";
 
   const [
     { data: receta, error: errorReceta },
@@ -33,7 +35,7 @@ export default async function PaginaEditorReceta({
     supabase
       .from("receta")
       .select(
-        "id_receta, nombre_plato, tipo_plato, cantidad_porciones, estado, costo_total_calculado, costo_por_porcion, fecha_ultimo_calculo",
+        "id_receta, nombre_plato, tipo_plato, cantidad_porciones, estado, costo_total_calculado, costo_por_porcion, fecha_ultimo_calculo, coeficiente_venta, vendible_individual, descripcion_publica",
       )
       .eq("id_receta", idReceta)
       .single<RecetaExistente>(),
@@ -79,6 +81,7 @@ export default async function PaginaEditorReceta({
           unidades={unidades ?? []}
           coeficienteVentaDefecto={coeficienteVentaDefecto}
           soloLectura={soloLectura}
+          puedeEditarVentaIndividual={puedeEditarVentaIndividual}
         />
       </Box>
     </>

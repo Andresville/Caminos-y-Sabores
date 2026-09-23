@@ -1,0 +1,80 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Paper from "@mui/material/Paper";
+import HeaderCliente from "@/components/cliente/HeaderCliente";
+import FooterCliente from "@/components/cliente/FooterCliente";
+import SelectorCantidadCarrito from "@/components/cliente/SelectorCantidadCarrito";
+import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
+import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
+import { obtenerParametrosPortal, obtenerPlatosPublicos } from "@/lib/cotizador/datos";
+import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
+
+export const dynamic = "force-dynamic";
+
+export default async function PaginaDetallePlato({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const idReceta = Number(id);
+  if (!Number.isInteger(idReceta)) notFound();
+
+  const parametros = await obtenerParametrosPortal();
+  const [platos, cliente] = await Promise.all([obtenerPlatosPublicos(parametros), obtenerClienteActual()]);
+  const plato = platos.find((p) => p.idReceta === idReceta);
+  if (!plato) notFound();
+
+  return (
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: paletaCliente.fondo }}>
+      <HeaderCliente />
+      <Box component="main" sx={{ flex: 1, maxWidth: 1280, mx: "auto", px: { xs: 2, sm: 3 }, py: 4, width: "100%" }}>
+        <Typography variant="body2" sx={{ color: paletaCliente.textoMuted, mb: 2 }}>
+          <Link href="/" style={{ color: "inherit" }}>
+            Catálogo
+          </Link>{" "}
+          › {plato.nombre}
+        </Typography>
+
+        <Box
+          sx={{
+            height: { xs: 220, sm: 340 },
+            borderRadius: 4,
+            mb: 4,
+            backgroundImage: `url(${plato.imagenUrl ?? IMAGEN_PLACEHOLDER})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            bgcolor: paletaCliente.fondoClaro,
+          }}
+        />
+
+        <Stack direction={{ xs: "column", lg: "row" }} spacing={4}>
+          <Box sx={{ flex: 2 }}>
+            <Typography sx={{ fontFamily: fuenteEncabezados, fontWeight: 700, fontSize: { xs: "1.7rem", sm: "2rem" }, color: paletaCliente.textoOscuro, mb: 1.5 }}>
+              {plato.nombre}
+            </Typography>
+            {plato.descripcion && (
+              <Typography sx={{ color: paletaCliente.textoSecundario }}>{plato.descripcion}</Typography>
+            )}
+          </Box>
+
+          <Box sx={{ flex: 1 }}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 3, borderColor: paletaCliente.borde, position: "sticky", top: 88, borderRadius: 4 }}
+            >
+              <SelectorCantidadCarrito
+                tipoItem="RECETA"
+                idReferencia={plato.idReceta}
+                nombre={plato.nombre}
+                imagenUrl={plato.imagenUrl}
+                etiquetaCantidad="Cantidad de porciones"
+                estaLogueado={Boolean(cliente)}
+              />
+            </Paper>
+          </Box>
+        </Stack>
+      </Box>
+      <FooterCliente />
+    </Box>
+  );
+}

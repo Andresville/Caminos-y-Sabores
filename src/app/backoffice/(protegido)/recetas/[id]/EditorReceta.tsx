@@ -27,7 +27,7 @@ import {
   ErrorMermaInvalida,
   ErrorUnidadesIncompatibles,
 } from "@/domain/costeo";
-import { guardarReceta } from "../actions";
+import { actualizarVentaIndividualReceta, guardarReceta } from "../actions";
 import { insumoDominio, unidadDominio, TIPOS_PLATO, type InsumoCatalogo, type UnidadCatalogo } from "../mapeo";
 
 export interface RecetaExistente {
@@ -39,6 +39,9 @@ export interface RecetaExistente {
   costo_total_calculado: number | null;
   costo_por_porcion: number | null;
   fecha_ultimo_calculo: string | null;
+  coeficiente_venta: number | null;
+  vendible_individual: boolean;
+  descripcion_publica: string | null;
 }
 
 export interface LineaExistente {
@@ -79,6 +82,7 @@ export default function EditorReceta({
   unidades,
   coeficienteVentaDefecto,
   soloLectura,
+  puedeEditarVentaIndividual,
 }: {
   receta: RecetaExistente;
   lineasIniciales: LineaExistente[];
@@ -86,6 +90,7 @@ export default function EditorReceta({
   unidades: UnidadCatalogo[];
   coeficienteVentaDefecto: number | null;
   soloLectura: boolean;
+  puedeEditarVentaIndividual: boolean;
 }) {
   const router = useRouter();
   const [nombrePlato, setNombrePlato] = useState(receta.nombre_plato);
@@ -95,6 +100,31 @@ export default function EditorReceta({
   const [lineas, setLineas] = useState<FilaEditable[]>(lineasIniciales.map(filaDesdeExistente));
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciarTransicion] = useTransition();
+
+  const [coeficienteVentaPropio, setCoeficienteVentaPropio] = useState(
+    receta.coeficiente_venta != null ? String(receta.coeficiente_venta) : "",
+  );
+  const [vendibleIndividual, setVendibleIndividual] = useState(receta.vendible_individual);
+  const [descripcionPublica, setDescripcionPublica] = useState(receta.descripcion_publica ?? "");
+  const [errorVenta, setErrorVenta] = useState<string | null>(null);
+  const [guardandoVenta, iniciarGuardadoVenta] = useTransition();
+
+  function guardarVentaIndividual() {
+    setErrorVenta(null);
+    iniciarGuardadoVenta(async () => {
+      const resultado = await actualizarVentaIndividualReceta({
+        idReceta: receta.id_receta,
+        coeficienteVenta: coeficienteVentaPropio ? Number(coeficienteVentaPropio) : null,
+        vendibleIndividual,
+        descripcionPublica: descripcionPublica.trim() || null,
+      });
+      if (resultado.error) {
+        setErrorVenta(resultado.error);
+      } else {
+        router.refresh();
+      }
+    });
+  }
 
   function agregarLinea() {
     setLineas((actual) => [
@@ -256,6 +286,65 @@ export default function EditorReceta({
           </TextField>
         </Stack>
       </Paper>
+
+      {(puedeEditarVentaIndividual || receta.vendible_individual) && (
+        <Paper variant="outlined" sx={{ p: 3 }}>
+          <Typography variant="overline" color="primary" sx={{ fontWeight: 700 }}>
+            Venta individual como plato
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+            Define si este plato se puede cotizar suelto en el portal público, además de dentro de un menú.
+          </Typography>
+
+          {errorVenta && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorVenta}
+            </Alert>
+          )}
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
+            <TextField
+              label="Coeficiente de venta"
+              type="number"
+              value={coeficienteVentaPropio}
+              onChange={(evento) => setCoeficienteVentaPropio(evento.target.value)}
+              slotProps={{ htmlInput: { step: "0.01", min: "1" } }}
+              disabled={!puedeEditarVentaIndividual || guardandoVenta}
+              fullWidth
+              helperText="Vacío = todavía sin definir"
+            />
+            <TextField
+              label="Publicado como plato"
+              select
+              value={vendibleIndividual ? "true" : "false"}
+              onChange={(evento) => setVendibleIndividual(evento.target.value === "true")}
+              disabled={!puedeEditarVentaIndividual || guardandoVenta}
+              fullWidth
+            >
+              <MenuItem value="true">Sí</MenuItem>
+              <MenuItem value="false">No</MenuItem>
+            </TextField>
+          </Stack>
+          <TextField
+            label="Descripción pública"
+            value={descripcionPublica}
+            onChange={(evento) => setDescripcionPublica(evento.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            disabled={!puedeEditarVentaIndividual || guardandoVenta}
+            helperText="Texto de venta que ve el cliente en el catálogo — no confundir con las instrucciones internas de cocina."
+          />
+
+          {puedeEditarVentaIndividual && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+              <Button variant="contained" onClick={guardarVentaIndividual} disabled={guardandoVenta}>
+                {guardandoVenta ? "Guardando…" : "Guardar"}
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      )}
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="h6">Ingredientes de la receta</Typography>

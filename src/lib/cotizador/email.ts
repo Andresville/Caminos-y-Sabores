@@ -22,7 +22,7 @@ export async function enviarPdfCotizacion(params: {
     const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
       to: params.destinatario,
-      subject: `Tu presupuesto ${params.codigo} — Caminos y Sabores`,
+      subject: `Tu presupuesto ${params.codigo} — Sabores y Eventos`,
       text: `Hola, adjuntamos tu presupuesto ${params.codigo}. Los precios quedaron congelados a la fecha de emisión.`,
       attachments: [{ filename: `${params.codigo}.pdf`, content: params.pdf }],
     });

@@ -82,7 +82,7 @@ export default function BarraLateral() {
     >
       <Box sx={{ px: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.3 }}>
-          Caminos y Sabores
+          Sabores &amp; Eventos
         </Typography>
         <Typography variant="caption" sx={{ color: "grey.500" }}>
           BACKOFFICE

@@ -40,6 +40,28 @@ export async function crearReceta(
   redirect(`/backoffice/recetas/${data.id_receta}`);
 }
 
+/** Solo Comercial/Administrador definen si una receta se vende suelta como "plato" y a qué precio — Ayudante de cocina no edita esto (misma separación que ya existe entre composición y coeficiente de venta del menú). */
+export async function actualizarVentaIndividualReceta(datos: {
+  idReceta: number;
+  coeficienteVenta: number | null;
+  vendibleIndividual: boolean;
+  descripcionPublica: string | null;
+}): Promise<EstadoFormulario> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("actualizar_venta_individual_receta", {
+    p_id_receta: datos.idReceta,
+    p_coeficiente_venta: datos.coeficienteVenta,
+    p_vendible_individual: datos.vendibleIndividual,
+    p_descripcion_publica: datos.descripcionPublica,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/backoffice/recetas");
+  revalidatePath(`/backoffice/recetas/${datos.idReceta}`);
+  return {};
+}
+
 export interface LineaEntrada {
   id_materia_prima: number;
   cantidad_usada: number;

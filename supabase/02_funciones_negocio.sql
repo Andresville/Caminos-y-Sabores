@@ -1,5 +1,5 @@
 -- =====================================================================
--- Caminos y Sabores — Segunda parte del esquema: funciones de negocio
+-- Sabores y Eventos — Segunda parte del esquema: funciones de negocio
 -- que cierran puntos abiertos del primer script (supabase/schema.sql):
 --
 --   1. Protege menu.coeficiente_venta a nivel de columna (solo
