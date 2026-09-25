@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { DesgloseCarrito } from "@/lib/cotizador/calculo";
 
 export type TipoItemCarrito = "MENU" | "RECETA" | "ADICIONAL";
 
@@ -9,19 +10,46 @@ export interface ItemCarrito {
   idReferencia: number;
   nombre: string;
   imagenUrl: string | null;
+  cantidadMinima: number;
   cantidad: number;
+}
+
+/** Datos del formulario + el estimado ya calculado, guardados mientras el cliente va a loguearse/registrarse y vuelve a confirmar. */
+export interface PedidoPendiente {
+  nombreEvento: string;
+  fechaEvento: string;
+  cantidadComensales: number;
+  idsAdicionales: number[];
+  nombresAdicionales: string[];
+  desglose: DesgloseCarrito;
+}
+
+/** Borrador del formulario de "Solicitar presupuesto", guardado mientras el cliente va a loguearse/registrarse (antes de ver el estimado) y vuelve. */
+export interface BorradorPedido {
+  nombreEvento: string;
+  fechaEvento: string;
+  cantidadComensales: string;
+  idsAdicionales: number[];
 }
 
 interface CarritoContextType {
   items: ItemCarrito[];
+  pedidoPendiente: PedidoPendiente | null;
+  borrador: BorradorPedido | null;
   cargado: boolean;
   agregar: (item: Omit<ItemCarrito, "cantidad">, cantidad?: number) => void;
   quitar: (tipoItem: TipoItemCarrito, idReferencia: number) => void;
   actualizarCantidad: (tipoItem: TipoItemCarrito, idReferencia: number, cantidad: number) => void;
   vaciar: () => void;
+  guardarPedidoPendiente: (pedido: PedidoPendiente) => void;
+  limpiarPedidoPendiente: () => void;
+  guardarBorrador: (borrador: BorradorPedido) => void;
+  limpiarBorrador: () => void;
 }
 
 const CLAVE_STORAGE = "caminos-y-sabores:carrito";
+const CLAVE_STORAGE_PEDIDO = "caminos-y-sabores:pedido-pendiente";
+const CLAVE_STORAGE_BORRADOR = "caminos-y-sabores:borrador-pedido";
 
 const CarritoContext = createContext<CarritoContextType | null>(null);
 
@@ -31,6 +59,8 @@ function claveItem(tipoItem: TipoItemCarrito, idReferencia: number): string {
 
 export function CarritoProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ItemCarrito[]>([]);
+  const [pedidoPendiente, setPedidoPendiente] = useState<PedidoPendiente | null>(null);
+  const [borrador, setBorrador] = useState<BorradorPedido | null>(null);
   const [cargado, setCargado] = useState(false);
 
   useEffect(() => {
@@ -41,6 +71,10 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
       const guardado = window.localStorage.getItem(CLAVE_STORAGE);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (guardado) setItems(JSON.parse(guardado));
+      const guardadoPedido = window.localStorage.getItem(CLAVE_STORAGE_PEDIDO);
+      if (guardadoPedido) setPedidoPendiente(JSON.parse(guardadoPedido));
+      const guardadoBorrador = window.localStorage.getItem(CLAVE_STORAGE_BORRADOR);
+      if (guardadoBorrador) setBorrador(JSON.parse(guardadoBorrador));
     } catch {
       // localStorage puede no estar disponible (modo privado, etc.); el carrito arranca vacío.
     }
@@ -55,6 +89,32 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
       // Igual que arriba: si no se puede persistir, el carrito sigue funcionando solo en memoria.
     }
   }, [items, cargado]);
+
+  useEffect(() => {
+    if (!cargado) return;
+    try {
+      if (pedidoPendiente) {
+        window.localStorage.setItem(CLAVE_STORAGE_PEDIDO, JSON.stringify(pedidoPendiente));
+      } else {
+        window.localStorage.removeItem(CLAVE_STORAGE_PEDIDO);
+      }
+    } catch {
+      // Igual que arriba: si no se puede persistir, sigue funcionando solo en memoria.
+    }
+  }, [pedidoPendiente, cargado]);
+
+  useEffect(() => {
+    if (!cargado) return;
+    try {
+      if (borrador) {
+        window.localStorage.setItem(CLAVE_STORAGE_BORRADOR, JSON.stringify(borrador));
+      } else {
+        window.localStorage.removeItem(CLAVE_STORAGE_BORRADOR);
+      }
+    } catch {
+      // Igual que arriba: si no se puede persistir, sigue funcionando solo en memoria.
+    }
+  }, [borrador, cargado]);
 
   function agregar(item: Omit<ItemCarrito, "cantidad">, cantidad = 1) {
     setItems((actual) => {
@@ -74,13 +134,11 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
   }
 
   function actualizarCantidad(tipoItem: TipoItemCarrito, idReferencia: number, cantidad: number) {
-    if (cantidad <= 0) {
-      quitar(tipoItem, idReferencia);
-      return;
-    }
     setItems((actual) =>
       actual.map((i) =>
-        claveItem(i.tipoItem, i.idReferencia) === claveItem(tipoItem, idReferencia) ? { ...i, cantidad } : i,
+        claveItem(i.tipoItem, i.idReferencia) === claveItem(tipoItem, idReferencia)
+          ? { ...i, cantidad: Math.max(i.cantidadMinima, cantidad) }
+          : i,
       ),
     );
   }
@@ -89,8 +147,39 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }
 
+  function guardarPedidoPendiente(pedido: PedidoPendiente) {
+    setPedidoPendiente(pedido);
+  }
+
+  function limpiarPedidoPendiente() {
+    setPedidoPendiente(null);
+  }
+
+  function guardarBorrador(datos: BorradorPedido) {
+    setBorrador(datos);
+  }
+
+  function limpiarBorrador() {
+    setBorrador(null);
+  }
+
   return (
-    <CarritoContext.Provider value={{ items, cargado, agregar, quitar, actualizarCantidad, vaciar }}>
+    <CarritoContext.Provider
+      value={{
+        items,
+        pedidoPendiente,
+        borrador,
+        cargado,
+        agregar,
+        quitar,
+        actualizarCantidad,
+        vaciar,
+        guardarPedidoPendiente,
+        limpiarPedidoPendiente,
+        guardarBorrador,
+        limpiarBorrador,
+      }}
+    >
       {children}
     </CarritoContext.Provider>
   );

@@ -7,12 +7,17 @@ export interface EstadoRespuesta {
   error?: string;
 }
 
-/** El cliente acepta o rechaza su propia cotización — la función valida internamente que le pertenezca y que ya esté en EN_NEGOCIACION (la "versión formal" que revisó Comercial). */
-export async function responderPresupuesto(idCotizacion: number, aceptar: boolean): Promise<EstadoRespuesta> {
+/** El cliente acepta o rechaza su propia cotización — la función valida internamente que le pertenezca y que todavía admita respuesta (EMITIDA o EN_NEGOCIACION). El motivo solo se guarda cuando rechaza. */
+export async function responderPresupuesto(
+  idCotizacion: number,
+  aceptar: boolean,
+  motivoRechazo?: string,
+): Promise<EstadoRespuesta> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("responder_cotizacion_cliente", {
     p_id_cotizacion: idCotizacion,
     p_aceptar: aceptar,
+    p_motivo_rechazo: aceptar ? null : motivoRechazo?.trim() || null,
   });
 
   if (error) return { error: error.message };

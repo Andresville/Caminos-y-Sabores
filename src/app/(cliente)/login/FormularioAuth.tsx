@@ -15,17 +15,15 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Link from "next/link";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
-import TurnstileWidget from "@/components/cliente/TurnstileWidget";
 import { iniciarSesionCliente, registrarCliente, type EstadoAuth } from "./actions";
 
 const estadoInicial: EstadoAuth = {};
 
-export default function FormularioAuth() {
+export default function FormularioAuth({ redirectA }: { redirectA: string }) {
   const [estadoLogin, accionLogin, pendienteLogin] = useActionState(iniciarSesionCliente, estadoInicial);
   const [estadoRegistro, accionRegistro, pendienteRegistro] = useActionState(registrarCliente, estadoInicial);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [mostrarTerminos, setMostrarTerminos] = useState(false);
-  const [tokenTurnstile, setTokenTurnstile] = useState("");
 
   return (
     <>
@@ -52,6 +50,7 @@ export default function FormularioAuth() {
           <Box component="form" action={accionLogin}>
             <Stack spacing={2}>
               {estadoLogin.error && <Alert severity="error">{estadoLogin.error}</Alert>}
+              <input type="hidden" name="redirect" value={redirectA} />
               <TextField name="email" label="Email" type="email" required fullWidth disabled={pendienteLogin} />
               <TextField name="password" label="Contraseña" type="password" required fullWidth disabled={pendienteLogin} />
               <Box sx={{ textAlign: "right" }}>
@@ -122,8 +121,7 @@ export default function FormularioAuth() {
                 }
               />
               <input type="hidden" name="acepta_terminos" value={aceptaTerminos ? "true" : "false"} />
-              <input type="hidden" name="token_turnstile" value={tokenTurnstile} />
-              <TurnstileWidget onToken={setTokenTurnstile} />
+              <input type="hidden" name="redirect" value={redirectA} />
               <Button
                 type="submit"
                 variant="contained"

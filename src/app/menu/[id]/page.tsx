@@ -16,7 +16,6 @@ import SelectorCantidadCarrito from "@/components/cliente/SelectorCantidadCarrit
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
 import { obtenerMenusPublicos, obtenerParametrosPortal } from "@/lib/cotizador/datos";
-import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
 
 const ETIQUETA_TIPO_PLATO: Record<string, string> = {
   ENTRADA: "Entrada",
@@ -42,7 +41,7 @@ export default async function PaginaDetalleMenu({ params }: { params: Promise<{ 
   if (!Number.isInteger(idMenu)) notFound();
 
   const parametros = await obtenerParametrosPortal();
-  const [menus, cliente] = await Promise.all([obtenerMenusPublicos(parametros), obtenerClienteActual()]);
+  const menus = await obtenerMenusPublicos(parametros);
   const menu = menus.find((m) => m.idMenu === idMenu);
   if (!menu) notFound();
 
@@ -149,7 +148,7 @@ export default async function PaginaDetalleMenu({ params }: { params: Promise<{ 
                 nombre={menu.nombre}
                 imagenUrl={menu.imagenUrl}
                 etiquetaCantidad="Cantidad de menús"
-                estaLogueado={Boolean(cliente)}
+                cantidadMinima={menu.paxMinimo}
               />
             </Paper>
           </Box>

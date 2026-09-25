@@ -7,19 +7,16 @@ import FooterCliente from "@/components/cliente/FooterCliente";
 import CatalogoGrid from "@/components/cliente/CatalogoGrid";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_HERO } from "@/lib/cliente-portal/imagenes";
-import { obtenerMenusPublicos, obtenerParametrosPortal, obtenerPlatosPublicos, obtenerServiciosPublicos } from "@/lib/cotizador/datos";
-import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
+import { obtenerMenusPublicos, obtenerParametrosPortal, obtenerPlatosPublicos } from "@/lib/cotizador/datos";
 
 // Catálogo público: tiene que reflejar lo que se edita en el backoffice sin esperar un nuevo build.
 export const dynamic = "force-dynamic";
 
 export default async function PaginaInicio() {
   const parametros = await obtenerParametrosPortal();
-  const [menus, platos, adicionales, cliente] = await Promise.all([
+  const [menus, platos] = await Promise.all([
     obtenerMenusPublicos(parametros),
     obtenerPlatosPublicos(parametros),
-    obtenerServiciosPublicos(parametros),
-    obtenerClienteActual(),
   ]);
 
   return (
@@ -67,7 +64,7 @@ export default async function PaginaInicio() {
       </Box>
 
       <Box component="main" sx={{ flex: 1 }}>
-        <CatalogoGrid menus={menus} platos={platos} adicionales={adicionales} estaLogueado={Boolean(cliente)} />
+        <CatalogoGrid menus={menus} platos={platos} />
 
         <Box sx={{ bgcolor: paletaCliente.fondoClaro, borderTop: `1px solid ${paletaCliente.borde}`, borderBottom: `1px solid ${paletaCliente.borde}` }}>
           <Stack

@@ -35,7 +35,7 @@ export default async function PaginaEditorReceta({
     supabase
       .from("receta")
       .select(
-        "id_receta, nombre_plato, tipo_plato, cantidad_porciones, estado, costo_total_calculado, costo_por_porcion, fecha_ultimo_calculo, coeficiente_venta, vendible_individual, descripcion_publica",
+        "id_receta, nombre_plato, tipo_plato, cantidad_porciones, estado, costo_total_calculado, costo_por_porcion, fecha_ultimo_calculo, coeficiente_venta, descripcion_publica",
       )
       .eq("id_receta", idReceta)
       .single<RecetaExistente>(),

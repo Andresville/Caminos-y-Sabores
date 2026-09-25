@@ -23,9 +23,16 @@ const ORDEN_TIPO_PLATO: Record<string, number> = {
 
 export interface ParametrosPortal extends ParametrosComerciales {
   validezCotizacionDias: number;
+  coeficienteVentaDefecto: number;
 }
 
-const CLAVES_PARAMETROS = ["GASTOS_GENERALES_PCT", "IVA_PORCENTAJE", "REDONDEO_PRECIO_FINAL", "VALIDEZ_COTIZACION_DIAS"] as const;
+const CLAVES_PARAMETROS = [
+  "GASTOS_GENERALES_PCT",
+  "IVA_PORCENTAJE",
+  "REDONDEO_PRECIO_FINAL",
+  "VALIDEZ_COTIZACION_DIAS",
+  "COEFICIENTE_VENTA_DEFECTO",
+] as const;
 
 export async function obtenerParametrosPortal(): Promise<ParametrosPortal> {
   const supabase = createAdminClient();
@@ -39,6 +46,7 @@ export async function obtenerParametrosPortal(): Promise<ParametrosPortal> {
     ivaPorcentaje: obtener("IVA_PORCENTAJE"),
     redondeoPrecioFinal: obtener("REDONDEO_PRECIO_FINAL"),
     validezCotizacionDias: obtener("VALIDEZ_COTIZACION_DIAS"),
+    coeficienteVentaDefecto: obtener("COEFICIENTE_VENTA_DEFECTO"),
   };
 }
 
@@ -192,6 +200,7 @@ export interface PlatoPublico {
   nombre: string;
   descripcion: string | null;
   precioPorPorcion: number;
+  cantidadPorciones: number;
   imagenUrl: string | null;
 }
 
@@ -201,11 +210,9 @@ export async function obtenerPlatosPublicos(parametros: ParametrosPortal): Promi
   const [{ data: recetas }, { data: fotos }] = await Promise.all([
     supabase
       .from("receta")
-      .select("id_receta, nombre_plato, descripcion_publica, costo_por_porcion, coeficiente_venta")
+      .select("id_receta, nombre_plato, descripcion_publica, costo_por_porcion, coeficiente_venta, cantidad_porciones")
       .eq("estado", "ACTIVA")
-      .eq("vendible_individual", true)
       .not("costo_por_porcion", "is", null)
-      .not("coeficiente_venta", "is", null)
       .order("nombre_plato"),
     supabase.from("menu_foto_plato").select("id_receta, imagen_url"),
   ]);
@@ -217,11 +224,30 @@ export async function obtenerPlatosPublicos(parametros: ParametrosPortal): Promi
     nombre: receta.nombre_plato,
     descripcion: receta.descripcion_publica,
     precioPorPorcion: calcularPrecioPublico(
-      { coeficienteVenta: receta.coeficiente_venta!, costoUnitario: receta.costo_por_porcion! },
+      { coeficienteVenta: receta.coeficiente_venta ?? parametros.coeficienteVentaDefecto, costoUnitario: receta.costo_por_porcion! },
       parametros,
     ),
+    cantidadPorciones: receta.cantidad_porciones,
     imagenUrl: mapaFotos.get(receta.id_receta) ?? null,
   }));
+}
+
+export interface IngredientePublico {
+  nombre: string;
+}
+
+/** Ingredientes reales de una receta (solo nombre del insumo, sin cantidades ni costos) para mostrar en el detalle público de un plato. */
+export async function obtenerIngredientesPublicosReceta(idReceta: number): Promise<IngredientePublico[]> {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("receta_materia_prima")
+    .select("orden, materia_prima:id_materia_prima(nombre)")
+    .eq("id_receta", idReceta)
+    .order("orden")
+    .returns<{ orden: number; materia_prima: { nombre: string } | null }[]>();
+
+  return (data ?? []).filter((fila) => fila.materia_prima).map((fila) => ({ nombre: fila.materia_prima!.nombre }));
 }
 
 export interface RecetaParaCalculo {
@@ -229,26 +255,27 @@ export interface RecetaParaCalculo {
   nombrePlato: string;
   coeficienteVenta: number;
   costoPorPorcion: Decimal;
+  cantidadPorciones: number;
 }
 
-/** Datos crudos del plato elegido en el carrito. null si no existe, no está activo, o no está habilitado para venta individual. */
-export async function obtenerRecetaParaCalculo(idReceta: number): Promise<RecetaParaCalculo | null> {
+/** Datos crudos del plato elegido en el carrito. null si no existe, no está activa, o todavía no tiene costo calculado. Cualquier receta activa es vendible como plato suelto. */
+export async function obtenerRecetaParaCalculo(idReceta: number, parametros: ParametrosPortal): Promise<RecetaParaCalculo | null> {
   const supabase = createAdminClient();
 
   const { data: receta } = await supabase
     .from("receta")
-    .select("nombre_plato, estado, vendible_individual, costo_por_porcion, coeficiente_venta")
+    .select("nombre_plato, estado, costo_por_porcion, coeficiente_venta, cantidad_porciones")
     .eq("id_receta", idReceta)
     .single();
 
-  if (!receta || receta.estado !== "ACTIVA" || !receta.vendible_individual) return null;
-  if (receta.costo_por_porcion == null || receta.coeficiente_venta == null) return null;
+  if (!receta || receta.estado !== "ACTIVA" || receta.costo_por_porcion == null) return null;
 
   return {
     idReceta,
     nombrePlato: receta.nombre_plato,
-    coeficienteVenta: receta.coeficiente_venta,
+    coeficienteVenta: receta.coeficiente_venta ?? parametros.coeficienteVentaDefecto,
     costoPorPorcion: new Decimal(receta.costo_por_porcion),
+    cantidadPorciones: receta.cantidad_porciones,
   };
 }
 
@@ -284,6 +311,7 @@ export async function obtenerServiciosPublicos(parametros: ParametrosPortal): Pr
 export interface AdicionalParaCalculo {
   idAdicional: number;
   nombreServicio: string;
+  tipoCobro: "FIJO" | "POR_PERSONA";
   coeficienteVenta: number;
   costoUnitario: Decimal;
 }
@@ -295,13 +323,14 @@ export async function obtenerAdicionalesParaCalculo(idsAdicionales: number[]): P
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("servicio_adicional")
-    .select("id_adicional, nombre_servicio, coeficiente_venta, costo_actual")
+    .select("id_adicional, nombre_servicio, tipo_cobro, coeficiente_venta, costo_actual")
     .in("id_adicional", idsAdicionales)
     .eq("estado", true);
 
   return (data ?? []).map((fila) => ({
     idAdicional: fila.id_adicional,
     nombreServicio: fila.nombre_servicio,
+    tipoCobro: fila.tipo_cobro as "FIJO" | "POR_PERSONA",
     coeficienteVenta: fila.coeficiente_venta,
     costoUnitario: new Decimal(fila.costo_actual),
   }));

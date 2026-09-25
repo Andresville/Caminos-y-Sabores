@@ -15,14 +15,14 @@ import HeaderCliente from "@/components/cliente/HeaderCliente";
 import FooterCliente from "@/components/cliente/FooterCliente";
 import AccionesRespuesta from "./AccionesRespuesta";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
-import { formatoFecha, formatoMoneda } from "@/lib/formato";
+import { fechaLocalDesdeISO, formatoFecha, formatoMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
 
 export const dynamic = "force-dynamic";
 
 const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning" | "success" | "error" | "default" }> = {
-  EMITIDA: { texto: "En revisión", color: "info" },
+  EMITIDA: { texto: "Solicitado", color: "warning" },
   EN_NEGOCIACION: { texto: "Pendiente de tu respuesta", color: "warning" },
   CONFIRMADA: { texto: "Aceptado", color: "success" },
   RECHAZADA: { texto: "Rechazado", color: "error" },
@@ -41,7 +41,7 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
   const supabase = await createClient();
   const { data: cotizacion } = await supabase
     .from("cotizacion")
-    .select("id_cotizacion, codigo, tipo_evento, fecha_evento, fecha_validez, subtotal_neto, monto_iva, monto_total, estado")
+    .select("id_cotizacion, codigo, tipo_evento, fecha_evento, cantidad_pax, fecha_validez, subtotal_neto, monto_iva, monto_total, estado, motivo_rechazo")
     .eq("id_cotizacion", idCotizacion)
     .single();
 
@@ -53,9 +53,11 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
     .eq("id_cotizacion", idCotizacion)
     .order("orden");
 
+  const lineasConPrecio = (detalle ?? []).filter((linea) => linea.precio_unitario_congelado > 0);
+  const serviciosSolicitados = (detalle ?? []).filter((linea) => linea.precio_unitario_congelado === 0);
+
   const badge = ETIQUETAS_ESTADO[cotizacion.estado] ?? { texto: cotizacion.estado, color: "default" as const };
-  const puedeResponder = cotizacion.estado === "EN_NEGOCIACION";
-  const enRevision = cotizacion.estado === "EMITIDA";
+  const puedeResponder = cotizacion.estado === "EMITIDA" || cotizacion.estado === "EN_NEGOCIACION";
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: paletaCliente.fondo }}>
@@ -75,18 +77,11 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
           <Chip label={badge.texto} color={badge.color} />
         </Stack>
 
-        {enRevision && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Este es un estimado automático. Nuestro equipo comercial lo está revisando — te vamos a avisar
-            cuando esté la versión formal para que la aceptes o rechaces.
-          </Alert>
-        )}
-
         <Paper variant="outlined" sx={{ p: 3, borderColor: paletaCliente.borde, borderRadius: 4, mb: 3 }}>
           <Stack direction="row" spacing={4} sx={{ flexWrap: "wrap", mb: 3 }}>
             <Box>
               <Typography variant="caption" sx={{ color: paletaCliente.textoMuted }}>
-                Tipo de evento
+                Evento
               </Typography>
               <Typography sx={{ fontWeight: 600, color: paletaCliente.textoOscuro }}>{cotizacion.tipo_evento}</Typography>
             </Box>
@@ -95,7 +90,15 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
                 Fecha del evento
               </Typography>
               <Typography sx={{ fontWeight: 600, color: paletaCliente.textoOscuro }}>
-                {formatoFecha.format(new Date(cotizacion.fecha_evento))}
+                {formatoFecha.format(fechaLocalDesdeISO(cotizacion.fecha_evento))}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: paletaCliente.textoMuted }}>
+                Comensales
+              </Typography>
+              <Typography sx={{ fontWeight: 600, color: paletaCliente.textoOscuro }}>
+                {cotizacion.cantidad_pax}
               </Typography>
             </Box>
             <Box>
@@ -103,7 +106,7 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
                 Válido hasta
               </Typography>
               <Typography sx={{ fontWeight: 600, color: paletaCliente.textoOscuro }}>
-                {formatoFecha.format(new Date(cotizacion.fecha_validez))}
+                {formatoFecha.format(fechaLocalDesdeISO(cotizacion.fecha_validez))}
               </Typography>
             </Box>
           </Stack>
@@ -119,7 +122,7 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(detalle ?? []).map((linea, indice) => (
+                {lineasConPrecio.map((linea, indice) => (
                   <TableRow key={indice}>
                     <TableCell>{linea.descripcion}</TableCell>
                     <TableCell align="right">{linea.cantidad}</TableCell>
@@ -130,6 +133,19 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
               </TableBody>
             </Table>
           </Box>
+
+          {serviciosSolicitados.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: paletaCliente.textoMuted, letterSpacing: 0.5 }}>
+                SERVICIOS ADICIONALES SOLICITADOS
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mt: 1 }}>
+                {serviciosSolicitados.map((linea, indice) => (
+                  <Chip key={indice} label={linea.descripcion} sx={{ bgcolor: paletaCliente.fondoClaro, color: paletaCliente.textoSecundario }} />
+                ))}
+              </Stack>
+            </Box>
+          )}
 
           <Stack spacing={0.5} sx={{ mt: 2, alignItems: "flex-end" }}>
             <Stack direction="row" spacing={2}>

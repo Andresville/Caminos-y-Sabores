@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { obtenerIpCliente } from "@/lib/cotizador/ip";
-import { verificarTurnstile } from "@/lib/cotizador/turnstile";
+import { redirigirSeguro } from "@/lib/cliente-portal/redirigirSeguro";
 
 export interface EstadoAuth {
   error?: string;
@@ -18,17 +17,13 @@ export async function registrarCliente(_estadoPrevio: EstadoAuth, formData: Form
   const password = String(formData.get("password") ?? "");
   const confirmarPassword = String(formData.get("confirmar_password") ?? "");
   const aceptaTerminos = formData.get("acepta_terminos") === "true";
-  const tokenTurnstile = String(formData.get("token_turnstile") ?? "");
+  const destino = redirigirSeguro(formData.get("redirect")?.toString());
 
   if (!nombreCompleto) return { error: "Ingresá tu nombre y apellido." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Ingresá un email válido." };
   if (password.length < 8) return { error: "La contraseña debe tener al menos 8 caracteres." };
   if (password !== confirmarPassword) return { error: "Las contraseñas no coinciden." };
   if (!aceptaTerminos) return { error: "Tenés que aceptar los Términos y Condiciones para continuar." };
-
-  const ip = await obtenerIpCliente();
-  const esHumano = await verificarTurnstile(tokenTurnstile, ip);
-  if (!esHumano) return { error: "No pudimos verificar que sos una persona. Volvé a intentar." };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -55,12 +50,13 @@ export async function registrarCliente(_estadoPrevio: EstadoAuth, formData: Form
     return { mensaje: "Te enviamos un email para confirmar tu cuenta. Confirmalo y después iniciá sesión." };
   }
 
-  redirect("/");
+  redirect(destino);
 }
 
 export async function iniciarSesionCliente(_estadoPrevio: EstadoAuth, formData: FormData): Promise<EstadoAuth> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const destino = redirigirSeguro(formData.get("redirect")?.toString());
 
   if (!email || !password) return { error: "Ingresá tu email y tu contraseña." };
 
@@ -69,7 +65,7 @@ export async function iniciarSesionCliente(_estadoPrevio: EstadoAuth, formData: 
 
   if (error) return { error: "Email o contraseña incorrectos." };
 
-  redirect("/");
+  redirect(destino);
 }
 
 export async function cerrarSesionCliente(): Promise<void> {

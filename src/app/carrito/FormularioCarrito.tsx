@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
@@ -20,46 +20,88 @@ import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
 import { useCarrito } from "@/lib/carrito-cliente/CarritoProvider";
-import { enviarPedido } from "./actions";
+import type { ServicioPublico } from "@/lib/cotizador/datos";
+import { simularPresupuesto } from "./actions";
 
-const TIPOS_EVENTO = ["Casamiento", "Cumpleaños", "Corporativo", "Aniversario", "Otro"];
+export function fechaMinimaHoy(): string {
+  const ahora = new Date();
+  const anio = ahora.getFullYear();
+  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+  const dia = String(ahora.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
 
-export default function FormularioCarrito({ estaLogueado }: { estaLogueado: boolean }) {
-  const { items, actualizarCantidad, quitar, vaciar, cargado } = useCarrito();
-  const [tipoEvento, setTipoEvento] = useState("");
+export default function FormularioCarrito({
+  estaLogueado,
+  adicionales,
+}: {
+  estaLogueado: boolean;
+  adicionales: ServicioPublico[];
+}) {
+  const { items, actualizarCantidad, quitar, cargado, borrador, guardarPedidoPendiente, guardarBorrador, limpiarBorrador } =
+    useCarrito();
+  const router = useRouter();
+  const [nombreEvento, setNombreEvento] = useState("");
   const [fechaEvento, setFechaEvento] = useState("");
+  const [cantidadComensales, setCantidadComensales] = useState("");
+  const [idsAdicionales, setIdsAdicionales] = useState<number[]>([]);
   const [consentimiento, setConsentimiento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exito, setExito] = useState<{ codigo: string; idCotizacion: number } | null>(null);
+
+  // Restaura lo que el cliente ya había escrito si volvió de loguearse/registrarse.
+  useEffect(() => {
+    if (cargado && borrador) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNombreEvento(borrador.nombreEvento);
+      setFechaEvento(borrador.fechaEvento);
+      setCantidadComensales(borrador.cantidadComensales);
+      setIdsAdicionales(borrador.idsAdicionales);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargado]);
 
   const totalItems = items.reduce((suma, item) => suma + item.cantidad, 0);
 
-  async function enviar() {
+  function alternarAdicional(idAdicional: number) {
+    setIdsAdicionales((actual) =>
+      actual.includes(idAdicional) ? actual.filter((id) => id !== idAdicional) : [...actual, idAdicional],
+    );
+  }
+
+  async function verResumen() {
     setError(null);
-    if (!estaLogueado) {
-      setError("Iniciá sesión para poder enviar tu pedido.");
-      return;
-    }
-    if (!tipoEvento) {
-      setError("Elegí el tipo de evento.");
+    if (!nombreEvento.trim()) {
+      setError("Ingresá el nombre del evento.");
       return;
     }
     if (!fechaEvento) {
       setError("Ingresá la fecha del evento.");
       return;
     }
+    if (fechaEvento < fechaMinimaHoy()) {
+      setError("La fecha del evento no puede ser una fecha pasada.");
+      return;
+    }
+    const comensales = Number(cantidadComensales);
+    if (!Number.isInteger(comensales) || comensales < 1) {
+      setError("Ingresá una cantidad de comensales válida.");
+      return;
+    }
     if (!consentimiento) {
-      setError("Tenés que aceptar la política de privacidad para continuar.");
+      setError("Tenés que aceptar los Términos y Condiciones para continuar.");
+      return;
+    }
+    if (!estaLogueado) {
+      guardarBorrador({ nombreEvento, fechaEvento, cantidadComensales, idsAdicionales });
+      router.push("/login?redirect=/carrito");
       return;
     }
 
     setEnviando(true);
-    const resultado = await enviarPedido({
+    const resultado = await simularPresupuesto({
       items: items.map((item) => ({ tipoItem: item.tipoItem, idReferencia: item.idReferencia, cantidad: item.cantidad })),
-      tipoEvento,
-      fechaEvento,
-      consentimientoDatos: consentimiento,
+      idsAdicionales,
     });
     setEnviando(false);
 
@@ -67,35 +109,17 @@ export default function FormularioCarrito({ estaLogueado }: { estaLogueado: bool
       setError(resultado.mensaje);
       return;
     }
-    vaciar();
-    setExito({ codigo: resultado.codigo, idCotizacion: resultado.idCotizacion });
-  }
 
-  if (exito) {
-    return (
-      <Box sx={{ maxWidth: 560, mx: "auto", px: 2, py: 10, textAlign: "center" }}>
-        <Typography sx={{ fontFamily: fuenteEncabezados, fontWeight: 700, fontSize: "1.6rem", color: paletaCliente.textoOscuro, mb: 1 }}>
-          ¡Recibimos tu pedido!
-        </Typography>
-        <Typography sx={{ color: paletaCliente.textoSecundario, mb: 3 }}>
-          Código {exito.codigo}. Es un estimado automático — nuestro equipo comercial lo va a revisar y te vamos
-          a avisar cuando esté la versión formal para que la aceptes o rechaces.
-        </Typography>
-        <Stack direction="row" spacing={2} sx={{ justifyContent: "center" }}>
-          <Button
-            component={Link}
-            href={`/mis-presupuestos/${exito.idCotizacion}`}
-            variant="contained"
-            sx={{ bgcolor: paletaCliente.primario, "&:hover": { bgcolor: paletaCliente.primarioOscuro } }}
-          >
-            Ver mi presupuesto
-          </Button>
-          <Button component={Link} href="/" variant="outlined" sx={{ borderColor: paletaCliente.primario, color: paletaCliente.primario }}>
-            Volver al inicio
-          </Button>
-        </Stack>
-      </Box>
-    );
+    limpiarBorrador();
+    guardarPedidoPendiente({
+      nombreEvento,
+      fechaEvento,
+      cantidadComensales: comensales,
+      idsAdicionales,
+      nombresAdicionales: resultado.nombresAdicionales,
+      desglose: resultado.desglose,
+    });
+    router.push("/carrito/resumen");
   }
 
   if (!cargado) return null;
@@ -193,31 +217,64 @@ export default function FormularioCarrito({ estaLogueado }: { estaLogueado: bool
               {error && <Alert severity="error">{error}</Alert>}
 
               <TextField
-                label="Tipo de evento"
-                select
-                value={tipoEvento}
-                onChange={(evento) => setTipoEvento(evento.target.value)}
+                label="Nombre del evento"
+                placeholder="Ej. Casamiento Pérez"
+                value={nombreEvento}
+                onChange={(evento) => setNombreEvento(evento.target.value)}
                 required
                 fullWidth
                 disabled={enviando}
-              >
-                {TIPOS_EVENTO.map((tipo) => (
-                  <MenuItem key={tipo} value={tipo}>
-                    {tipo}
-                  </MenuItem>
-                ))}
-              </TextField>
+              />
 
               <TextField
                 label="Fecha del evento"
                 type="date"
                 value={fechaEvento}
                 onChange={(evento) => setFechaEvento(evento.target.value)}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: new Date().toISOString().slice(0, 10) } }}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: fechaMinimaHoy() } }}
                 required
                 fullWidth
                 disabled={enviando}
               />
+
+              <TextField
+                label="Cantidad de comensales"
+                type="number"
+                placeholder="Ej. 50"
+                value={cantidadComensales}
+                onChange={(evento) => setCantidadComensales(evento.target.value)}
+                slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                required
+                fullWidth
+                disabled={enviando}
+              />
+
+              {adicionales.length > 0 && (
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: paletaCliente.textoOscuro, mb: 1 }}>
+                    Servicios adicionales
+                  </Typography>
+                  <Stack>
+                    {adicionales.map((adicional) => (
+                      <FormControlLabel
+                        key={adicional.idAdicional}
+                        control={
+                          <Checkbox
+                            checked={idsAdicionales.includes(adicional.idAdicional)}
+                            onChange={() => alternarAdicional(adicional.idAdicional)}
+                            disabled={enviando}
+                          />
+                        }
+                        label={
+                          <Typography variant="body2" sx={{ color: paletaCliente.textoSecundario }}>
+                            {adicional.nombre}
+                          </Typography>
+                        }
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+              )}
 
               <FormControlLabel
                 control={
@@ -225,20 +282,20 @@ export default function FormularioCarrito({ estaLogueado }: { estaLogueado: bool
                 }
                 label={
                   <Typography variant="body2" sx={{ color: paletaCliente.textoSecundario }}>
-                    Acepto que este es un presupuesto estimado y no vinculante, y que mis datos de contacto se
-                    usen para coordinar el evento.
+                    Acepto los Términos y Condiciones. Entiendo que este es un presupuesto estimado y no
+                    vinculante, y que mis datos de contacto se usen para coordinar el evento.
                   </Typography>
                 }
               />
 
               <Button
-                onClick={enviar}
+                onClick={verResumen}
                 variant="contained"
                 size="large"
                 disabled={enviando}
                 sx={{ bgcolor: paletaCliente.primario, "&:hover": { bgcolor: paletaCliente.primarioOscuro } }}
               >
-                {enviando ? "Enviando…" : "Solicitar presupuesto"}
+                {enviando ? "Calculando…" : "Ver presupuesto estimado"}
               </Button>
             </Stack>
           </Paper>

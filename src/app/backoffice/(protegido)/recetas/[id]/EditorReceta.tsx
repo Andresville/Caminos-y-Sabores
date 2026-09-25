@@ -40,7 +40,6 @@ export interface RecetaExistente {
   costo_por_porcion: number | null;
   fecha_ultimo_calculo: string | null;
   coeficiente_venta: number | null;
-  vendible_individual: boolean;
   descripcion_publica: string | null;
 }
 
@@ -104,7 +103,6 @@ export default function EditorReceta({
   const [coeficienteVentaPropio, setCoeficienteVentaPropio] = useState(
     receta.coeficiente_venta != null ? String(receta.coeficiente_venta) : "",
   );
-  const [vendibleIndividual, setVendibleIndividual] = useState(receta.vendible_individual);
   const [descripcionPublica, setDescripcionPublica] = useState(receta.descripcion_publica ?? "");
   const [errorVenta, setErrorVenta] = useState<string | null>(null);
   const [guardandoVenta, iniciarGuardadoVenta] = useTransition();
@@ -115,7 +113,6 @@ export default function EditorReceta({
       const resultado = await actualizarVentaIndividualReceta({
         idReceta: receta.id_receta,
         coeficienteVenta: coeficienteVentaPropio ? Number(coeficienteVentaPropio) : null,
-        vendibleIndividual,
         descripcionPublica: descripcionPublica.trim() || null,
       });
       if (resultado.error) {
@@ -287,13 +284,15 @@ export default function EditorReceta({
         </Stack>
       </Paper>
 
-      {(puedeEditarVentaIndividual || receta.vendible_individual) && (
+      {puedeEditarVentaIndividual && (
         <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="overline" color="primary" sx={{ fontWeight: 700 }}>
             Venta individual como plato
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-            Define si este plato se puede cotizar suelto en el portal público, además de dentro de un menú.
+            Toda receta activa se muestra automáticamente como plato suelto en el catálogo del cliente. Acá podés
+            definir un coeficiente de venta propio (si lo dejás vacío, se usa el coeficiente por defecto del
+            sistema) y el texto de venta que ve el cliente.
           </Typography>
 
           {errorVenta && (
@@ -302,29 +301,17 @@ export default function EditorReceta({
             </Alert>
           )}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
-            <TextField
-              label="Coeficiente de venta"
-              type="number"
-              value={coeficienteVentaPropio}
-              onChange={(evento) => setCoeficienteVentaPropio(evento.target.value)}
-              slotProps={{ htmlInput: { step: "0.01", min: "1" } }}
-              disabled={!puedeEditarVentaIndividual || guardandoVenta}
-              fullWidth
-              helperText="Vacío = todavía sin definir"
-            />
-            <TextField
-              label="Publicado como plato"
-              select
-              value={vendibleIndividual ? "true" : "false"}
-              onChange={(evento) => setVendibleIndividual(evento.target.value === "true")}
-              disabled={!puedeEditarVentaIndividual || guardandoVenta}
-              fullWidth
-            >
-              <MenuItem value="true">Sí</MenuItem>
-              <MenuItem value="false">No</MenuItem>
-            </TextField>
-          </Stack>
+          <TextField
+            label="Coeficiente de venta"
+            type="number"
+            value={coeficienteVentaPropio}
+            onChange={(evento) => setCoeficienteVentaPropio(evento.target.value)}
+            slotProps={{ htmlInput: { step: "0.01", min: "1" } }}
+            disabled={guardandoVenta}
+            fullWidth
+            helperText="Vacío = usa el coeficiente por defecto del sistema"
+            sx={{ mb: 2 }}
+          />
           <TextField
             label="Descripción pública"
             value={descripcionPublica}
@@ -332,17 +319,15 @@ export default function EditorReceta({
             fullWidth
             multiline
             minRows={2}
-            disabled={!puedeEditarVentaIndividual || guardandoVenta}
+            disabled={guardandoVenta}
             helperText="Texto de venta que ve el cliente en el catálogo — no confundir con las instrucciones internas de cocina."
           />
 
-          {puedeEditarVentaIndividual && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-              <Button variant="contained" onClick={guardarVentaIndividual} disabled={guardandoVenta}>
-                {guardandoVenta ? "Guardando…" : "Guardar"}
-              </Button>
-            </Box>
-          )}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+            <Button variant="contained" onClick={guardarVentaIndividual} disabled={guardandoVenta}>
+              {guardandoVenta ? "Guardando…" : "Guardar"}
+            </Button>
+          </Box>
         </Paper>
       )}
 

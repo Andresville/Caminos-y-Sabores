@@ -17,26 +17,22 @@ export default function SelectorCantidadCarrito({
   nombre,
   imagenUrl,
   etiquetaCantidad,
-  estaLogueado,
+  cantidadMinima,
 }: {
   tipoItem: TipoItemCarrito;
   idReferencia: number;
   nombre: string;
   imagenUrl: string | null;
   etiquetaCantidad: string;
-  estaLogueado: boolean;
+  cantidadMinima: number;
 }) {
   const { agregar } = useCarrito();
   const router = useRouter();
-  const [cantidad, setCantidad] = useState(1);
+  const [cantidad, setCantidad] = useState(cantidadMinima);
   const [agregado, setAgregado] = useState(false);
 
   function agregarAlCarrito() {
-    if (!estaLogueado) {
-      router.push("/login");
-      return;
-    }
-    agregar({ tipoItem, idReferencia, nombre, imagenUrl }, cantidad);
+    agregar({ tipoItem, idReferencia, nombre, imagenUrl, cantidadMinima }, cantidad);
     setAgregado(true);
     setTimeout(() => setAgregado(false), 2000);
   }
@@ -49,7 +45,7 @@ export default function SelectorCantidadCarrito({
         </Typography>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <IconButton
-            onClick={() => setCantidad((valor) => Math.max(1, valor - 1))}
+            onClick={() => setCantidad((valor) => Math.max(cantidadMinima, valor - 1))}
             sx={{ bgcolor: paletaCliente.fondoClaro, color: paletaCliente.primario, "&:hover": { bgcolor: paletaCliente.borde } }}
           >
             <RemoveIcon fontSize="small" />

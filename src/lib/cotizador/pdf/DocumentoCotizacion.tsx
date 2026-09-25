@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import { formatoFecha, formatoMoneda } from "@/lib/formato";
+import { fechaLocalDesdeISO, formatoFecha, formatoMoneda } from "@/lib/formato";
 
 export interface LineaPdf {
   descripcion: string;
@@ -61,7 +61,7 @@ export default function DocumentoCotizacion({ datos }: { datos: DatosPdfCotizaci
           <View style={{ alignItems: "flex-end" }}>
             <Text style={{ fontWeight: 700 }}>Presupuesto {datos.codigo}</Text>
             <Text style={estilos.codigo}>Emitido el {formatoFecha.format(new Date(datos.fechaEmision))}</Text>
-            <Text style={estilos.codigo}>Válido hasta el {formatoFecha.format(new Date(datos.fechaValidez))}</Text>
+            <Text style={estilos.codigo}>Válido hasta el {formatoFecha.format(fechaLocalDesdeISO(datos.fechaValidez))}</Text>
           </View>
         </View>
 

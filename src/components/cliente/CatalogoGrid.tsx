@@ -2,56 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { formatoMoneda } from "@/lib/formato";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
-import { useCarrito } from "@/lib/carrito-cliente/CarritoProvider";
-import type { MenuPublico, PlatoPublico, ServicioPublico } from "@/lib/cotizador/datos";
+import type { MenuPublico, PlatoPublico } from "@/lib/cotizador/datos";
 
-type Categoria = "menus" | "platos" | "adicionales";
+type Categoria = "menus" | "platos";
 
 export default function CatalogoGrid({
   menus,
   platos,
-  adicionales,
-  estaLogueado,
 }: {
   menus: MenuPublico[];
   platos: PlatoPublico[];
-  adicionales: ServicioPublico[];
-  estaLogueado: boolean;
 }) {
   const [categoria, setCategoria] = useState<Categoria>("menus");
-  const { agregar } = useCarrito();
-  const router = useRouter();
-  const [agregadoId, setAgregadoId] = useState<number | null>(null);
-
-  function agregarAdicional(adicional: ServicioPublico) {
-    if (!estaLogueado) {
-      router.push("/login");
-      return;
-    }
-    agregar({
-      tipoItem: "ADICIONAL",
-      idReferencia: adicional.idAdicional,
-      nombre: adicional.nombre,
-      imagenUrl: null,
-    });
-    setAgregadoId(adicional.idAdicional);
-    setTimeout(() => setAgregadoId(null), 1500);
-  }
 
   const chips: { valor: Categoria; etiqueta: string }[] = [
     { valor: "menus", etiqueta: "Menús" },
     { valor: "platos", etiqueta: "Platos" },
-    { valor: "adicionales", etiqueta: "Adicionales" },
   ];
 
   return (
@@ -103,46 +76,6 @@ export default function CatalogoGrid({
               descripcion={plato.descripcion}
               imagenUrl={plato.imagenUrl}
             />
-          ))}
-        </Grid>
-      )}
-
-      {categoria === "adicionales" && (
-        <Grid vacio={adicionales.length === 0} textoVacio="Todavía no hay servicios adicionales publicados.">
-          {adicionales.map((adicional) => (
-            <Box
-              key={adicional.idAdicional}
-              sx={{ bgcolor: "white", border: `1px solid ${paletaCliente.borde}`, borderRadius: 4, p: 2.5 }}
-            >
-              <Typography sx={{ fontWeight: 700, color: paletaCliente.textoOscuro, mb: 0.5 }}>
-                {adicional.nombre}
-              </Typography>
-              {adicional.descripcion && (
-                <Typography variant="body2" sx={{ color: paletaCliente.textoTerciario, mb: 1.5 }}>
-                  {adicional.descripcion}
-                </Typography>
-              )}
-              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                  <Typography sx={{ fontWeight: 700, color: paletaCliente.primario }}>
-                    {formatoMoneda.format(adicional.precioUnitario)}
-                  </Typography>
-                  <Chip label={adicional.tipoCobro === "FIJO" ? "Fijo" : "Por persona"} size="small" />
-                </Stack>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => agregarAdicional(adicional)}
-                  sx={{
-                    bgcolor: agregadoId === adicional.idAdicional ? "success.main" : paletaCliente.primario,
-                    "&:hover": { bgcolor: paletaCliente.primarioOscuro },
-                    textTransform: "none",
-                  }}
-                >
-                  {agregadoId === adicional.idAdicional ? "¡Agregado!" : "Agregar"}
-                </Button>
-              </Stack>
-            </Box>
           ))}
         </Grid>
       )}
