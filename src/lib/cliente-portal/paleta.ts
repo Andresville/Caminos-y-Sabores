@@ -5,6 +5,7 @@ export const paletaCliente = {
   fondo: "#FBEFE3",
   fondoClaro: "#F5E6DA",
   fondoMasClaro: "#FDFAF8",
+  fondoFooter: "#FAECE4",
   borde: "#EDD9C8",
   bordeInput: "#D4B8A8",
   textoOscuro: "#2D1A0E",

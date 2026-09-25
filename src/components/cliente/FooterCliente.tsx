@@ -18,7 +18,7 @@ const redes = [
 
 export default function FooterCliente() {
   return (
-    <Box component="footer" sx={{ bgcolor: paletaCliente.fondo, borderTop: `1px solid ${paletaCliente.borde}` }}>
+    <Box component="footer" sx={{ bgcolor: paletaCliente.fondoFooter, borderTop: `1px solid ${paletaCliente.borde}` }}>
       <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 2, sm: 3 }, py: 6 }}>
         <Box
           sx={{
