@@ -19,7 +19,7 @@ import { cerrarSesionCliente } from "@/app/(cliente)/login/actions";
 
 export default function AccionesHeader({ cliente }: { cliente: { nombreCompleto: string } | null }) {
   const { items } = useCarrito();
-  const totalItems = items.reduce((suma, item) => suma + item.cantidad, 0);
+  const totalItems = items?.length || 0;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   return (
