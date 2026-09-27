@@ -43,7 +43,7 @@ export const ITEMS_NAV: ItemNav[] = [
   { etiqueta: "Dashboard", href: "/backoffice", icono: GridViewOutlinedIcon, disponible: true },
   { etiqueta: "Usuarios", href: "/backoffice/usuarios", icono: PeopleOutlineOutlinedIcon, disponible: true, roles: ["Administrador"] },
   { etiqueta: "Insumos", href: "/backoffice/insumos", icono: Inventory2OutlinedIcon, disponible: true },
-  { etiqueta: "Platos", href: "/backoffice/recetas", icono: RestaurantOutlinedIcon, disponible: true },
+  { etiqueta: "Recetas", href: "/backoffice/recetas", icono: RestaurantOutlinedIcon, disponible: true },
   {
     etiqueta: "Menú",
     href: "/backoffice/menus",
