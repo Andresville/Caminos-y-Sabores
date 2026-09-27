@@ -1,4 +1,3 @@
-import Decimal from "decimal.js";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
@@ -6,41 +5,18 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import { createClient } from "@/lib/supabase/server";
-import { costearLinea } from "@/domain/costeo";
 import { formatoFecha, formatoMoneda } from "@/lib/formato";
-import { insumoDominio, unidadDominio } from "../recetas/mapeo";
-import type { InsumoCatalogo, UnidadCatalogo } from "../recetas/mapeo";
 import TarjetaEstadistica from "./TarjetaEstadistica";
 
-interface InsumoFila extends InsumoCatalogo {
-  existencia_actual: number;
-  ultima_actualizacion: string;
-}
-
-interface DemandaConfirmada {
-  id_cotizacion: number;
-  cantidad_pax: number;
-  id_receta: number;
-  porciones_por_pax: number;
-}
-
-interface RecetaBase {
-  id_receta: number;
-  cantidad_porciones: number;
-}
-
-interface LineaReceta {
-  id_receta: number;
+interface InsumoFila {
   id_materia_prima: number;
-  cantidad_usada: number;
-  id_unidad_receta: number;
-  porcentaje_merma: number;
+  ultima_actualizacion: string;
 }
 
 interface CambioPrecio {
   id_historico: number;
-  costo_anterior: number;
-  costo_nuevo: number;
+  precio_bulto_anterior: number;
+  precio_bulto_nuevo: number;
   fecha_cambio: string;
   materia_prima: { nombre: string } | null;
 }
@@ -53,126 +29,22 @@ function estaDesactualizado(fechaIso: string, diasAlerta: number): boolean {
 export default async function DashboardCompras() {
   const supabase = await createClient();
 
-  const [
-    { data: insumos },
-    { data: unidades },
-    { data: demandaConfirmadaRpc },
-    { data: parametro },
-    { data: historial },
-  ] = await Promise.all([
+  const [{ data: insumos }, { data: parametro }, { data: historial }] = await Promise.all([
     supabase
       .from("materia_prima")
-      .select(
-        "id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra, existencia_actual, ultima_actualizacion",
-      )
+      .select("id_materia_prima, ultima_actualizacion")
       .eq("estado", true)
       .returns<InsumoFila[]>(),
-    supabase
-      .from("unidad_medida")
-      .select("id_unidad, nombre, simbolo, magnitud, factor_a_base")
-      .eq("activa", true)
-      .returns<UnidadCatalogo[]>(),
-    // Ayudante de compras no puede leer cotizacion ni menu_receta en
-    // general (matriz de roles): esta función angosta expone solo la
-    // combinación receta + porciones que exigen las cotizaciones ya
-    // confirmadas, sin abrir esas tablas por completo.
-    supabase.rpc("obtener_demanda_confirmada"),
     supabase.from("parametro_sistema").select("valor").eq("clave", "DIAS_ALERTA_PRECIO").single(),
     supabase
       .from("historico_precio_mp")
-      .select("id_historico, costo_anterior, costo_nuevo, fecha_cambio, materia_prima:id_materia_prima(nombre)")
+      .select("id_historico, precio_bulto_anterior, precio_bulto_nuevo, fecha_cambio, materia_prima:id_materia_prima(nombre)")
       .order("fecha_cambio", { ascending: false })
       .limit(5)
       .returns<CambioPrecio[]>(),
   ]);
 
   const listaInsumos = insumos ?? [];
-  const listaUnidades = unidades ?? [];
-  const insumosPorId = new Map(listaInsumos.map((i) => [i.id_materia_prima, i]));
-
-  // Solo cuenta demanda real y comprometida: cotizaciones ya confirmadas
-  // (todavía no ejecutadas, según el estado). Una receta sin ninguna
-  // cotización confirmada detrás no genera alerta.
-  const demandaConfirmada = (demandaConfirmadaRpc ?? []) as DemandaConfirmada[];
-  const idsReceta = [...new Set(demandaConfirmada.map((d) => d.id_receta))];
-
-  const [{ data: recetasBase }, { data: lineasRecetas }] = idsReceta.length
-    ? await Promise.all([
-        supabase.from("receta").select("id_receta, cantidad_porciones").in("id_receta", idsReceta).returns<RecetaBase[]>(),
-        supabase
-          .from("receta_materia_prima")
-          .select("id_receta, id_materia_prima, cantidad_usada, id_unidad_receta, porcentaje_merma")
-          .in("id_receta", idsReceta)
-          .returns<LineaReceta[]>(),
-      ])
-    : [{ data: [] as RecetaBase[] }, { data: [] as LineaReceta[] }];
-
-  const porcionesBasePorReceta = new Map((recetasBase ?? []).map((r) => [r.id_receta, r.cantidad_porciones]));
-  const lineasPorReceta = new Map<number, LineaReceta[]>();
-  for (const linea of lineasRecetas ?? []) {
-    const acumuladas = lineasPorReceta.get(linea.id_receta) ?? [];
-    acumuladas.push(linea);
-    lineasPorReceta.set(linea.id_receta, acumuladas);
-  }
-
-  // Cantidad necesaria (en unidad de compra de cada insumo) para cubrir
-  // todas las cotizaciones confirmadas, escalando cada receta por sus
-  // porciones_por_pax y la cantidad de invitados cotizada, con el mismo
-  // motor de costeo que usa el editor de recetas.
-  const necesarioPorInsumo = new Map<number, Decimal>();
-
-  for (const demanda of demandaConfirmada) {
-    const porcionesBase = porcionesBasePorReceta.get(demanda.id_receta);
-    if (!porcionesBase) continue;
-
-    const porcionesNecesarias = new Decimal(demanda.porciones_por_pax).times(demanda.cantidad_pax);
-
-    for (const linea of lineasPorReceta.get(demanda.id_receta) ?? []) {
-      const insumoFila = insumosPorId.get(linea.id_materia_prima);
-      const unidadReceta = listaUnidades.find((u) => u.id_unidad === linea.id_unidad_receta);
-      const insumo = insumoFila ? insumoDominio(insumoFila, listaUnidades) : null;
-      if (!insumo || !unidadReceta) continue;
-
-      try {
-        const { cantidadBruta } = costearLinea({
-          insumo,
-          cantidadUsada: new Decimal(linea.cantidad_usada),
-          unidadReceta: unidadDominio(unidadReceta),
-          porcentajeMerma: new Decimal(linea.porcentaje_merma),
-        });
-        const necesarioLinea = cantidadBruta
-          .dividedBy(porcionesBase)
-          .times(porcionesNecesarias)
-          .dividedBy(insumo.unidadCompra.factorABase);
-
-        const acumulado = necesarioPorInsumo.get(linea.id_materia_prima) ?? new Decimal(0);
-        necesarioPorInsumo.set(linea.id_materia_prima, acumulado.plus(necesarioLinea));
-      } catch {
-        // Dato inconsistente en una línea puntual: no debe tirar abajo el resto del panel.
-        continue;
-      }
-    }
-  }
-
-  const insumosStockBajo = listaInsumos
-    .map((insumo) => {
-      const necesario = necesarioPorInsumo.get(insumo.id_materia_prima);
-      if (!necesario || necesario.lte(0)) return null;
-
-      const existencia = new Decimal(insumo.existencia_actual);
-      if (existencia.gte(necesario.times(1.1))) return null;
-
-      const unidadCompra = listaUnidades.find((u) => u.id_unidad === insumo.id_unidad_compra);
-      return {
-        nombre: insumo.nombre,
-        existencia,
-        necesario,
-        simbolo: unidadCompra?.simbolo ?? "",
-      };
-    })
-    .filter((fila): fila is NonNullable<typeof fila> => fila !== null)
-    .sort((a, b) => a.existencia.dividedBy(a.necesario).comparedTo(b.existencia.dividedBy(b.necesario)));
-
   const diasAlerta = parametro ? Number(parametro.valor) : 30;
   const desactualizados = listaInsumos.filter((i) => estaDesactualizado(i.ultima_actualizacion, diasAlerta)).length;
 
@@ -185,34 +57,7 @@ export default async function DashboardCompras() {
           valor={desactualizados}
           severidad={desactualizados > 0 ? "warning" : "neutro"}
         />
-        <TarjetaEstadistica
-          etiqueta="Alertas de stock bajo"
-          valor={insumosStockBajo.length}
-          severidad={insumosStockBajo.length > 0 ? "error" : "neutro"}
-        />
       </Stack>
-
-      {insumosStockBajo.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Stock por debajo de lo necesario
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Insumos cuya existencia actual no llega a cubrir, con un 10% de margen, lo que requieren las
-            cotizaciones confirmadas (todavía no ejecutadas) que los usan.
-          </Typography>
-          <List dense>
-            {insumosStockBajo.map((fila) => (
-              <ListItem key={fila.nombre} disableGutters>
-                <ListItemText
-                  primary={fila.nombre}
-                  secondary={`Existencia: ${fila.existencia.toFixed(2)} ${fila.simbolo} · Necesario: ${fila.necesario.toFixed(2)} ${fila.simbolo}`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-      )}
 
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -226,7 +71,7 @@ export default async function DashboardCompras() {
               <ListItem key={cambio.id_historico} disableGutters>
                 <ListItemText
                   primary={cambio.materia_prima?.nombre ?? "—"}
-                  secondary={`${formatoMoneda.format(cambio.costo_anterior)} → ${formatoMoneda.format(cambio.costo_nuevo)} · ${formatoFecha.format(new Date(cambio.fecha_cambio))}`}
+                  secondary={`${formatoMoneda.format(cambio.precio_bulto_anterior)} → ${formatoMoneda.format(cambio.precio_bulto_nuevo)} · ${formatoFecha.format(new Date(cambio.fecha_cambio))}`}
                 />
               </ListItem>
             ))}
