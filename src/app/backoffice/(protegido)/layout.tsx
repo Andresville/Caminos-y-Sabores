@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
 import { UsuarioActualProvider } from "@/lib/usuario-actual/UsuarioActualProvider";
 import BarraLateral from "./BarraLateral";
+import BarraSuperior from "./BarraSuperior";
 
 export default async function LayoutBackofficeProtegido({
   children,
@@ -21,14 +22,27 @@ export default async function LayoutBackofficeProtegido({
     redirect("/backoffice/login");
   }
 
+  let solicitudesPendientes = 0;
+  if (usuarioActual.rol === "Asistente Comercial" || usuarioActual.rol === "Administrador") {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("cotizacion")
+      .select("id_cotizacion", { count: "exact", head: true })
+      .eq("estado", "EMITIDA");
+    solicitudesPendientes = count ?? 0;
+  }
+
   return (
     <UsuarioActualProvider value={usuarioActual}>
       <Box sx={{ display: "flex", minHeight: "100vh" }}>
-        <BarraLateral />
+        <BarraLateral solicitudesPendientes={solicitudesPendientes} />
         {/* minWidth: 0 es necesario para que este panel pueda encogerse y
             dejar que el contenido ancho (tablas, etc.) scrollee dentro
             suyo, en vez de empujar todo el layout más allá del viewport. */}
-        <Box sx={{ flex: 1, minWidth: 0, bgcolor: "background.default" }}>{children}</Box>
+        <Box sx={{ flex: 1, minWidth: 0, bgcolor: "background.default", display: "flex", flexDirection: "column" }}>
+          <BarraSuperior />
+          <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
+        </Box>
       </Box>
     </UsuarioActualProvider>
   );

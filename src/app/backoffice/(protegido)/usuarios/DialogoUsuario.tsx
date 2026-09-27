@@ -10,8 +10,12 @@ import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 import { actualizarUsuario, crearUsuario } from "./actions";
 import type { FilaUsuario, RolDisponible } from "./TablaUsuarios";
+
+const COLOR_ACCION = "#219653";
 
 export default function DialogoUsuario({
   modo,
@@ -43,12 +47,12 @@ export default function DialogoUsuario({
     const formData = new FormData();
     formData.set("nombre_completo", nombreCompleto);
     formData.set("id_rol", idRol);
+    formData.set("estado", String(estadoActivo));
 
     iniciarTransicion(async () => {
       let resultado;
       if (esEdicion && usuario) {
         formData.set("id_usuario", usuario.id_usuario);
-        formData.set("estado", String(estadoActivo));
         resultado = await actualizarUsuario({}, formData);
       } else {
         formData.set("email", email);
@@ -66,13 +70,18 @@ export default function DialogoUsuario({
 
   return (
     <Dialog open={modo !== null} onClose={cerrar} fullWidth maxWidth="sm">
-      <DialogTitle>{esEdicion ? "Editar usuario" : "Nuevo usuario"}</DialogTitle>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        {esEdicion ? "Editar usuario" : "Nuevo usuario"}
+        <IconButton onClick={cerrar} size="small" disabled={pendiente}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           <TextField
-            label="Nombre completo"
+            label="Nombre"
             value={nombreCompleto}
             onChange={(evento) => setNombreCompleto(evento.target.value)}
             required
@@ -82,7 +91,7 @@ export default function DialogoUsuario({
           />
 
           <TextField
-            label="Email"
+            label="Mail"
             type="email"
             value={email}
             onChange={(evento) => setEmail(evento.target.value)}
@@ -121,23 +130,21 @@ export default function DialogoUsuario({
             ))}
           </TextField>
 
-          {esEdicion && (
-            <TextField
-              label="Estado"
-              select
-              value={estadoActivo ? "true" : "false"}
-              onChange={(evento) => setEstadoActivo(evento.target.value === "true")}
-              fullWidth
-              disabled={pendiente}
-            >
-              <MenuItem value="true">Activo</MenuItem>
-              <MenuItem value="false">Inactivo</MenuItem>
-            </TextField>
-          )}
+          <TextField
+            label="Estado"
+            select
+            value={estadoActivo ? "true" : "false"}
+            onChange={(evento) => setEstadoActivo(evento.target.value === "true")}
+            fullWidth
+            disabled={pendiente}
+          >
+            <MenuItem value="true">Activo</MenuItem>
+            <MenuItem value="false">Inactivo</MenuItem>
+          </TextField>
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={cerrar} disabled={pendiente}>
+        <Button onClick={cerrar} disabled={pendiente} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -149,6 +156,7 @@ export default function DialogoUsuario({
             !idRol ||
             (!esEdicion && (!email || password.length < 6))
           }
+          sx={{ bgcolor: COLOR_ACCION, "&:hover": { bgcolor: "#1B7A44" } }}
         >
           {pendiente ? "Guardando…" : esEdicion ? "Guardar cambios" : "Crear usuario"}
         </Button>

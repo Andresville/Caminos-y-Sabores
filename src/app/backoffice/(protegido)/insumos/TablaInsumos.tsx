@@ -73,9 +73,9 @@ export default function TablaInsumos({
   diasAlerta: number;
 }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Ayudante de compras";
-  // Mismos roles que pueden leer historico_precio_mp por RLS (Ayudante de cocina no tiene acceso a precios).
-  const puedeVerHistorico = rol === "Ayudante de compras" || rol === "Comercial" || rol === "Administrador";
+  const puedeEscribir = rol === "Ayudante de compras" || rol === "Administrador";
+  // Mismos roles que pueden leer historico_precio_mp por RLS (Cocina no tiene acceso a precios).
+  const puedeVerHistorico = rol === "Ayudante de compras" || rol === "Asistente Comercial" || rol === "Administrador";
   const [modo, setModo] = useState<"nuevo" | FilaInsumo | null>(null);
   const [expandido, setExpandido] = useState<number | null>(null);
   const cantidadColumnas = 9 + (puedeEscribir ? 1 : 0);

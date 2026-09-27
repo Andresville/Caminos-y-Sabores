@@ -10,6 +10,35 @@ export interface EstadoFormulario {
 }
 
 /**
+ * Borrado real de una cuenta (no reversible): elimina primero la fila
+ * de negocio y después la cuenta de Supabase Auth. auditoria.id_usuario
+ * queda en null para esa persona (on delete set null), el resto del
+ * registro de auditoría se conserva intacto.
+ */
+export async function eliminarUsuario(idUsuario: string): Promise<EstadoFormulario> {
+  const usuarioActual = await obtenerUsuarioActual();
+  if (usuarioActual?.rol !== "Administrador") {
+    return { error: "No tenés permiso para eliminar usuarios." };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user?.id === idUsuario) {
+    return { error: "No podés eliminar tu propia cuenta." };
+  }
+
+  const { error: errorPerfil } = await supabase.from("usuario").delete().eq("id_usuario", idUsuario);
+  if (errorPerfil) return { error: errorPerfil.message };
+
+  const admin = createAdminClient();
+  const { error: errorAuth } = await admin.auth.admin.deleteUser(idUsuario);
+  if (errorAuth) return { error: errorAuth.message };
+
+  revalidatePath("/backoffice/usuarios");
+  return {};
+}
+
+/**
  * Alta directa de un usuario: crea la cuenta de Supabase Auth con la
  * contraseña que fija el Administrador (sin mandar mail de invitación,
  * confirmada de una) y la fila de negocio en public.usuario.
@@ -27,6 +56,7 @@ export async function crearUsuario(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const idRol = Number(formData.get("id_rol"));
+  const estado = formData.get("estado") !== "false";
 
   if (!nombreCompleto) return { error: "Ingresá el nombre completo." };
   if (!email) return { error: "Ingresá el email." };
@@ -51,7 +81,7 @@ export async function crearUsuario(
     nombre_completo: nombreCompleto,
     email,
     id_rol: idRol,
-    estado: true,
+    estado,
   });
 
   if (errorPerfil) {

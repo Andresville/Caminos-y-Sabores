@@ -4,44 +4,28 @@ import FormularioLogin from "./FormularioLogin";
 
 export default function PaginaLogin() {
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <Box
-        sx={{
-          display: { xs: "none", md: "flex" },
-          flexDirection: "column",
-          justifyContent: "center",
-          width: "45%",
-          bgcolor: "#39424C",
-          color: "common.white",
-          px: 8,
-        }}
-      >
-        <Typography variant="h3" sx={{ fontWeight: 700 }}>
-          Sabores &amp; Eventos
-        </Typography>
-        <Typography variant="h6" sx={{ color: "grey.400", mt: 1 }}>
-          Catering &amp; Eventos
-        </Typography>
-        <Box sx={{ width: 64, height: 4, bgcolor: "primary.main", my: 3 }} />
-        <Typography sx={{ color: "grey.300" }}>Panel de administración</Typography>
-        <Typography variant="body2" sx={{ color: "grey.500", mt: 0.5 }}>
-          Gestión de insumos, recetas, menús y cotizaciones.
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: "background.default",
-          p: 2,
-        }}
-      >
-        <FormularioLogin />
-      </Box>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        px: 2,
+        py: 6,
+        background: `
+          radial-gradient(circle at 15% 20%, rgba(140, 84, 50, 0.35), transparent 40%),
+          radial-gradient(circle at 85% 12%, rgba(100, 56, 34, 0.3), transparent 45%),
+          radial-gradient(circle at 20% 88%, rgba(80, 46, 32, 0.35), transparent 40%),
+          radial-gradient(circle at 90% 82%, rgba(110, 64, 40, 0.3), transparent 45%),
+          #1c130f
+        `,
+      }}
+    >
+      <FormularioLogin />
+      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)", mt: 4, textAlign: "center" }}>
+        © {new Date().getFullYear()} Sabores y Eventos S.L. • Todos los derechos reservados.
+      </Typography>
     </Box>
   );
 }

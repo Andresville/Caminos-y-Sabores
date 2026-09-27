@@ -9,7 +9,7 @@ import FormularioNuevoMenu from "./FormularioNuevoMenu";
 export default async function PaginaNuevoMenu() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Ayudante de cocina") {
+  if (usuarioActual?.rol !== "Cocina" && usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice/menus");
   }
 
@@ -21,7 +21,7 @@ export default async function PaginaNuevoMenu() {
           ← Menús
         </BotonEnlace>
         <Typography color="text.secondary" gutterBottom>
-          El coeficiente de venta se hereda del valor por defecto del sistema; lo ajusta Comercial
+          El coeficiente de venta se hereda del valor por defecto del sistema; lo ajusta Asistente Comercial
           después si corresponde.
         </Typography>
         <FormularioNuevoMenu />

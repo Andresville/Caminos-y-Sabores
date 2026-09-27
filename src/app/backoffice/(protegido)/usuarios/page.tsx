@@ -3,7 +3,6 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
-import EncabezadoPagina from "@/components/EncabezadoPagina";
 import TablaUsuarios, { type FilaUsuario, type RolDisponible } from "./TablaUsuarios";
 
 export default async function PaginaUsuarios() {
@@ -30,16 +29,13 @@ export default async function PaginaUsuarios() {
   ]);
 
   return (
-    <>
-      <EncabezadoPagina titulo="Usuarios" subtitulo="Cuentas del backoffice y sus roles" />
-      <Box sx={{ p: 4 }}>
-        {error && (
-          <Typography color="error" sx={{ mb: 2 }}>
-            No se pudo cargar el listado: {error.message}
-          </Typography>
-        )}
-        <TablaUsuarios usuarios={usuarios ?? []} roles={roles ?? []} />
-      </Box>
-    </>
+    <Box sx={{ p: 4 }}>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          No se pudo cargar el listado: {error.message}
+        </Typography>
+      )}
+      <TablaUsuarios usuarios={usuarios ?? []} roles={roles ?? []} />
+    </Box>
   );
 }

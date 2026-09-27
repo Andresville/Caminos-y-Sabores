@@ -25,9 +25,9 @@ export default async function PaginaEditorMenu({
     redirect("/backoffice");
   }
 
-  const puedeEditarComposicion = usuarioActual?.rol === "Ayudante de cocina";
+  const puedeEditarComposicion = usuarioActual?.rol === "Cocina" || usuarioActual?.rol === "Administrador";
   const puedeEditarCoeficiente =
-    usuarioActual?.rol === "Comercial" || usuarioActual?.rol === "Administrador";
+    usuarioActual?.rol === "Asistente Comercial" || usuarioActual?.rol === "Administrador";
 
   const supabase = await createClient();
 

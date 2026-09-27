@@ -14,7 +14,7 @@ export default async function PaginaAuditoria({
 }) {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Comercial" && usuarioActual?.rol !== "Administrador") {
+  if (usuarioActual?.rol !== "Asistente Comercial" && usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice");
   }
 

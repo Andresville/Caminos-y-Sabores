@@ -15,8 +15,8 @@ export default async function PaginaInicioBackoffice() {
       <EncabezadoPagina titulo="Dashboard" subtitulo="Resumen general del sistema" />
       <Box sx={{ p: 4 }}>
         {usuarioActual?.rol === "Ayudante de compras" && <DashboardCompras />}
-        {usuarioActual?.rol === "Ayudante de cocina" && <DashboardChef />}
-        {usuarioActual?.rol === "Comercial" && <DashboardComercial />}
+        {usuarioActual?.rol === "Cocina" && <DashboardChef />}
+        {usuarioActual?.rol === "Asistente Comercial" && <DashboardComercial />}
         {usuarioActual?.rol === "Administrador" && <DashboardAdministrador />}
         {!usuarioActual && <Typography color="text.secondary">No se pudo determinar el rol del usuario.</Typography>}
       </Box>

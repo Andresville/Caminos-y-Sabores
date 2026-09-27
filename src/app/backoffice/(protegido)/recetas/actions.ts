@@ -40,7 +40,7 @@ export async function crearReceta(
   redirect(`/backoffice/recetas/${data.id_receta}`);
 }
 
-/** Solo Comercial/Administrador definen el coeficiente y el texto de venta de una receta cuando se vende suelta como "plato" — Ayudante de cocina no edita esto (misma separación que ya existe entre composición y coeficiente de venta del menú). Toda receta activa se publica automáticamente; esto solo define precio propio y texto de venta. */
+/** Solo Asistente Comercial/Administrador definen el coeficiente y el texto de venta de una receta cuando se vende suelta como "plato" — Cocina no edita esto (misma separación que ya existe entre composición y coeficiente de venta del menú). Toda receta activa se publica automáticamente; esto solo define precio propio y texto de venta. */
 export async function actualizarVentaIndividualReceta(datos: {
   idReceta: number;
   coeficienteVenta: number | null;
