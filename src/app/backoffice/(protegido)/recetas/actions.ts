@@ -11,36 +11,7 @@ export interface EstadoFormulario {
   error?: string;
 }
 
-export async function crearReceta(
-  _estadoPrevio: EstadoFormulario,
-  formData: FormData,
-): Promise<EstadoFormulario> {
-  const nombrePlato = String(formData.get("nombre_plato") ?? "").trim();
-  const tipoPlato = String(formData.get("tipo_plato") ?? "");
-  const cantidadPorciones = Number(formData.get("cantidad_porciones"));
-
-  if (!nombrePlato) return { error: "Ingresá el nombre del plato." };
-  if (!tipoPlato) return { error: "Elegí el tipo de plato." };
-  if (!Number.isFinite(cantidadPorciones) || cantidadPorciones <= 0) {
-    return { error: "La cantidad de porciones debe ser mayor a cero." };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("receta")
-    .insert({ nombre_plato: nombrePlato, tipo_plato: tipoPlato, cantidad_porciones: cantidadPorciones })
-    .select("id_receta")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "No se pudo crear la receta." };
-  }
-
-  revalidatePath("/backoffice/recetas");
-  redirect(`/backoffice/recetas/${data.id_receta}`);
-}
-
-/** Solo Asistente Comercial/Administrador definen el coeficiente y el texto de venta de una receta cuando se vende suelta como "plato" — Cocina no edita esto (misma separación que ya existe entre composición y coeficiente de venta del menú). Toda receta activa se publica automáticamente; esto solo define precio propio y texto de venta. */
+/** Solo Asistente Comercial/Administrador definen el margen de una receta cuando se vende suelta como "plato" — Cocina no edita esto. Toda receta activa se publica automáticamente; esto solo define el margen propio y el coeficiente que resulta. */
 export async function actualizarVentaIndividualReceta(datos: {
   idReceta: number;
   coeficienteVenta: number | null;
@@ -64,29 +35,45 @@ export interface LineaEntrada {
   id_materia_prima: number;
   cantidad_usada: number;
   id_unidad_receta: number;
-  porcentaje_merma: number;
 }
 
 /**
- * Recalcula el costo con el motor de dominio a partir de datos frescos
- * de la base (nunca confía en un costo calculado por el cliente) y
- * persiste todo de forma atómica vía guardar_receta_completa().
+ * Alta o edición de una receta completa (encabezado + ingredientes) en
+ * un solo paso. Recalcula el costo con el motor de dominio a partir de
+ * datos frescos de la base (nunca confía en un costo calculado por el
+ * cliente) y persiste todo de forma atómica vía
+ * guardar_receta_completa() — que crea la receta cuando no recibe un
+ * id existente.
  */
 export async function guardarReceta(datos: {
-  idReceta: number;
+  idReceta: number | null;
   nombrePlato: string;
+  descripcionPublica: string;
   tipoPlato: string;
   cantidadPorciones: number;
+  mermaPct: number;
+  manoObraPct: number;
+  imagenChicaUrl: string | null;
+  imagenBannerUrl: string | null;
   estado: string;
   lineas: LineaEntrada[];
 }): Promise<EstadoFormulario> {
-  if (!datos.nombrePlato.trim()) return { error: "Ingresá el nombre del plato." };
+  if (!datos.nombrePlato.trim()) return { error: "Ingresá el nombre de la receta." };
   if (!datos.tipoPlato) return { error: "Elegí el tipo de plato." };
   if (!Number.isFinite(datos.cantidadPorciones) || datos.cantidadPorciones <= 0) {
-    return { error: "La cantidad de porciones debe ser mayor a cero." };
+    return { error: "La cantidad mínima de platos debe ser mayor a cero." };
+  }
+  if (!Number.isFinite(datos.mermaPct) || datos.mermaPct < 0 || datos.mermaPct >= 100) {
+    return { error: "La merma debe ser un porcentaje entre 0 y 100." };
+  }
+  if (!Number.isFinite(datos.manoObraPct) || datos.manoObraPct < 0) {
+    return { error: "La mano de obra debe ser un porcentaje mayor o igual a 0." };
   }
   if (datos.estado === "ACTIVA" && datos.lineas.length === 0) {
     return { error: "No se puede activar una receta sin insumos cargados." };
+  }
+  if (datos.estado === "ACTIVA" && (!datos.imagenChicaUrl || !datos.imagenBannerUrl)) {
+    return { error: "No se puede activar una receta sin sus dos fotos cargadas." };
   }
 
   const supabase = await createClient();
@@ -126,7 +113,6 @@ export async function guardarReceta(datos: {
       insumo,
       cantidadUsada: new Decimal(linea.cantidad_usada),
       unidadReceta: unidadDominio(unidadReceta),
-      porcentajeMerma: new Decimal(linea.porcentaje_merma),
     });
   }
 
@@ -135,6 +121,8 @@ export async function guardarReceta(datos: {
   try {
     const resultado = costearReceta({
       cantidadPorciones: datos.cantidadPorciones,
+      mermaPct: new Decimal(datos.mermaPct),
+      manoObraPct: new Decimal(datos.manoObraPct),
       lineas: lineasDominio,
     });
     costoTotal = resultado.costoTotal;
@@ -149,14 +137,18 @@ export async function guardarReceta(datos: {
     id_materia_prima: linea.id_materia_prima,
     cantidad_usada: linea.cantidad_usada,
     id_unidad_receta: linea.id_unidad_receta,
-    porcentaje_merma: linea.porcentaje_merma,
   }));
 
-  const { error } = await supabase.rpc("guardar_receta_completa", {
+  const { data: resultado, error } = await supabase.rpc("guardar_receta_completa", {
     p_id_receta: datos.idReceta,
     p_nombre_plato: datos.nombrePlato,
+    p_descripcion_publica: datos.descripcionPublica.trim() || null,
     p_tipo_plato: datos.tipoPlato,
     p_cantidad_porciones: datos.cantidadPorciones,
+    p_merma_pct: datos.mermaPct,
+    p_mano_obra_pct: datos.manoObraPct,
+    p_imagen_chica_url: datos.imagenChicaUrl,
+    p_imagen_banner_url: datos.imagenBannerUrl,
     p_estado: datos.estado,
     p_lineas: lineasJson,
     p_costo_total: costoTotal.toNumber(),
@@ -166,6 +158,11 @@ export async function guardarReceta(datos: {
   if (error) return { error: error.message };
 
   revalidatePath("/backoffice/recetas");
+
+  if (datos.idReceta === null) {
+    redirect(`/backoffice/recetas/${resultado.id_receta}`);
+  }
+
   revalidatePath(`/backoffice/recetas/${datos.idReceta}`);
   return {};
 }

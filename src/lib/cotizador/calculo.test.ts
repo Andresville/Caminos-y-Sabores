@@ -5,15 +5,23 @@ import { calcularDesgloseCarrito, calcularPrecioPublico, type LineaCarrito } fro
 const parametros = { gastosGeneralesPct: 12, ivaPorcentaje: 21, redondeoPrecioFinal: 100 };
 
 describe("calcularPrecioPublico", () => {
-  test("aplica gastos generales y coeficiente sobre el costo crudo", () => {
+  // Receta (plato suelto): ya no lleva gastos generales, van adentro de su costo_por_porcion.
+  test("un plato no aplica gastos generales, solo el coeficiente", () => {
+    // 85000 (costo) x 1.45 (coeficiente) = 123250
+    const precio = calcularPrecioPublico({ coeficienteVenta: 1.45, costoUnitario: 85000 }, parametros, false);
+    expect(precio).toBe(123250);
+  });
+
+  // Adicional: sigue llevando gastos generales, no tiene un equivalente de mano de obra propio.
+  test("un adicional aplica gastos generales y coeficiente sobre el costo crudo", () => {
     // 85000 (costo) x 1.12 (gastos generales) x 1.45 (coeficiente) = 138040
-    const precio = calcularPrecioPublico({ coeficienteVenta: 1.45, costoUnitario: 85000 }, parametros);
+    const precio = calcularPrecioPublico({ coeficienteVenta: 1.45, costoUnitario: 85000 }, parametros, true);
     expect(precio).toBe(138040);
   });
 });
 
 describe("calcularDesgloseCarrito", () => {
-  test("cada línea usa su propio coeficiente; IVA y redondeo se aplican una sola vez sobre el total", () => {
+  test("Menú y Receta no llevan gastos generales, Adicional sí; IVA y redondeo se aplican una sola vez sobre el total", () => {
     const lineas: LineaCarrito[] = [
       {
         tipoItem: "MENU",
@@ -43,19 +51,19 @@ describe("calcularDesgloseCarrito", () => {
 
     const desglose = calcularDesgloseCarrito(lineas, parametros);
 
-    // Menú: 14604.8 x 1.12 x 1.45 = 23718.1952 -> x20 = 474363.904 -> 474363.90
-    expect(desglose.lineas[0].precioUnitario).toBe(23718.2);
-    expect(desglose.lineas[0].subtotal).toBe(474363.9);
+    // Menú: 14604.8 x 1.45 = 21176.96 -> x20 = 423539.2 (sin gastos generales: ya están en cada receta)
+    expect(desglose.lineas[0].precioUnitario).toBe(21176.96);
+    expect(desglose.lineas[0].subtotal).toBe(423539.2);
 
-    // Plato: 6000 x 1.12 x 1.6 = 10752 -> x3 = 32256
-    expect(desglose.lineas[1].precioUnitario).toBe(10752);
-    expect(desglose.lineas[1].subtotal).toBe(32256);
+    // Plato: 6000 x 1.6 = 9600 -> x3 = 28800 (sin gastos generales)
+    expect(desglose.lineas[1].precioUnitario).toBe(9600);
+    expect(desglose.lineas[1].subtotal).toBe(28800);
 
-    // Adicional: 320000 x 1.12 x 1.45 = 519680
+    // Adicional: 320000 x 1.12 x 1.45 = 519680 (sigue llevando gastos generales)
     expect(desglose.lineas[2].precioUnitario).toBe(519680);
     expect(desglose.lineas[2].subtotal).toBe(519680);
 
-    const subtotalEsperado = 474363.9 + 32256 + 519680;
+    const subtotalEsperado = 423539.2 + 28800 + 519680;
     expect(desglose.subtotalNeto).toBe(subtotalEsperado);
 
     const totalSinRedondear = subtotalEsperado * 1.21;

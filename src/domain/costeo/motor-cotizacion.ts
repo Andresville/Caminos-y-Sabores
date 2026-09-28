@@ -68,3 +68,22 @@ export function precioFinal(
 export function margenSobreVenta(coeficienteVenta: Decimal): Decimal {
   return new Decimal(1).minus(new Decimal(1).dividedBy(coeficienteVenta));
 }
+
+/** Inversa de margenSobreVenta: convierte un margen ingresado como porcentaje al coeficiente que multiplica el costo. */
+export function coeficienteDesdeMargen(margenPct: Decimal): Decimal {
+  return new Decimal(1).dividedBy(new Decimal(1).minus(margenPct.dividedBy(100)));
+}
+
+/**
+ * Margen como recargo directo sobre el costo (costo + X%), a diferencia
+ * de margenSobreVenta/coeficienteDesdeMargen (margen como % del precio
+ * de venta). Se usa en Recetas: un margen de 30% da un coeficiente de
+ * 1,30, no 1,4286.
+ */
+export function margenSobreCosto(coeficienteVenta: Decimal): Decimal {
+  return coeficienteVenta.minus(1);
+}
+
+export function coeficienteDesdeMargenSobreCosto(margenPct: Decimal): Decimal {
+  return new Decimal(1).plus(margenPct.dividedBy(100));
+}

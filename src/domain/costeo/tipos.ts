@@ -26,21 +26,25 @@ export interface LineaReceta {
   insumo: Insumo;
   cantidadUsada: Decimal;
   unidadReceta: UnidadMedida;
-  /** Porcentaje entre 0 (inclusive) y 100 (exclusive). */
-  porcentajeMerma: Decimal;
 }
 
 export interface ResultadoLinea {
-  cantidadBruta: Decimal;
   costoLinea: Decimal;
 }
 
 export interface Receta {
   cantidadPorciones: number;
+  /** Porcentaje entre 0 (inclusive) y 100 (exclusive), sobre el costo de insumos. */
+  mermaPct: Decimal;
+  /** Porcentaje sobre el costo de insumos, sin tope superior. */
+  manoObraPct: Decimal;
   lineas: LineaReceta[];
 }
 
 export interface ResultadoReceta {
+  costoInsumos: Decimal;
+  mermaMonto: Decimal;
+  manoObraMonto: Decimal;
   costoTotal: Decimal;
   costoPorPorcion: Decimal;
 }

@@ -201,23 +201,23 @@ export interface PlatoPublico {
   descripcion: string | null;
   precioPorPorcion: number;
   cantidadPorciones: number;
-  imagenUrl: string | null;
+  /** Foto chica del catálogo (grilla de platos). */
+  imagenChicaUrl: string | null;
+  /** Foto banner del detalle del plato. */
+  imagenBannerUrl: string | null;
 }
 
 export async function obtenerPlatosPublicos(parametros: ParametrosPortal): Promise<PlatoPublico[]> {
   const supabase = createAdminClient();
 
-  const [{ data: recetas }, { data: fotos }] = await Promise.all([
-    supabase
-      .from("receta")
-      .select("id_receta, nombre_plato, descripcion_publica, costo_por_porcion, coeficiente_venta, cantidad_porciones")
-      .eq("estado", "ACTIVA")
-      .not("costo_por_porcion", "is", null)
-      .order("nombre_plato"),
-    supabase.from("menu_foto_plato").select("id_receta, imagen_url"),
-  ]);
-
-  const mapaFotos = new Map((fotos ?? []).map((foto) => [foto.id_receta, foto.imagen_url]));
+  const { data: recetas } = await supabase
+    .from("receta")
+    .select(
+      "id_receta, nombre_plato, descripcion_publica, costo_por_porcion, coeficiente_venta, cantidad_porciones, imagen_chica_url, imagen_banner_url",
+    )
+    .eq("estado", "ACTIVA")
+    .not("costo_por_porcion", "is", null)
+    .order("nombre_plato");
 
   return (recetas ?? []).map((receta) => ({
     idReceta: receta.id_receta,
@@ -226,9 +226,11 @@ export async function obtenerPlatosPublicos(parametros: ParametrosPortal): Promi
     precioPorPorcion: calcularPrecioPublico(
       { coeficienteVenta: receta.coeficiente_venta ?? parametros.coeficienteVentaDefecto, costoUnitario: receta.costo_por_porcion! },
       parametros,
+      false,
     ),
     cantidadPorciones: receta.cantidad_porciones,
-    imagenUrl: mapaFotos.get(receta.id_receta) ?? null,
+    imagenChicaUrl: receta.imagen_chica_url,
+    imagenBannerUrl: receta.imagen_banner_url,
   }));
 }
 
@@ -304,6 +306,7 @@ export async function obtenerServiciosPublicos(parametros: ParametrosPortal): Pr
     precioUnitario: calcularPrecioPublico(
       { coeficienteVenta: fila.coeficiente_venta, costoUnitario: fila.costo_actual },
       parametros,
+      true,
     ),
   }));
 }

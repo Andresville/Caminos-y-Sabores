@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
-import Box from "@mui/material/Box";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
-import EncabezadoPagina from "@/components/EncabezadoPagina";
-import BotonEnlace from "@/components/BotonEnlace";
-import EditorReceta, { type LineaExistente, type RecetaExistente } from "./EditorReceta";
+import FormularioReceta, { type LineaExistente, type RecetaEditable } from "../FormularioReceta";
 import type { InsumoCatalogo, UnidadCatalogo } from "../mapeo";
 
 export default async function PaginaEditorReceta({
@@ -21,69 +18,50 @@ export default async function PaginaEditorReceta({
 
   const supabase = await createClient();
   const usuarioActual = await obtenerUsuarioActual();
-  const soloLectura = usuarioActual?.rol !== "Cocina" && usuarioActual?.rol !== "Administrador";
-  const puedeEditarVentaIndividual =
-    usuarioActual?.rol === "Asistente Comercial" || usuarioActual?.rol === "Administrador";
+  const puedeEditarComposicion = usuarioActual?.rol === "Cocina" || usuarioActual?.rol === "Administrador";
+  const puedeEditarMargen = usuarioActual?.rol === "Asistente Comercial" || usuarioActual?.rol === "Administrador";
 
-  const [
-    { data: receta, error: errorReceta },
-    { data: lineas },
-    { data: insumos },
-    { data: unidades },
-    { data: coeficienteVentaDefectoRpc },
-  ] = await Promise.all([
-    supabase
-      .from("receta")
-      .select(
-        "id_receta, nombre_plato, tipo_plato, cantidad_porciones, estado, costo_total_calculado, costo_por_porcion, fecha_ultimo_calculo, coeficiente_venta, descripcion_publica",
-      )
-      .eq("id_receta", idReceta)
-      .single<RecetaExistente>(),
-    supabase
-      .from("receta_materia_prima")
-      .select("id_detalle, id_materia_prima, cantidad_usada, id_unidad_receta, porcentaje_merma, orden")
-      .eq("id_receta", idReceta)
-      .order("orden")
-      .returns<LineaExistente[]>(),
-    supabase
-      .from("materia_prima")
-      .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra")
-      .eq("estado", true)
-      .order("nombre")
-      .returns<InsumoCatalogo[]>(),
-    supabase
-      .from("unidad_medida")
-      .select("id_unidad, nombre, simbolo, magnitud, factor_a_base")
-      .eq("activa", true)
-      .order("nombre")
-      .returns<UnidadCatalogo[]>(),
-    supabase.rpc("obtener_coeficiente_venta_defecto"),
-  ]);
+  const [{ data: receta, error: errorReceta }, { data: lineas }, { data: insumos }, { data: unidades }] =
+    await Promise.all([
+      supabase
+        .from("receta")
+        .select(
+          "id_receta, nombre_plato, descripcion_publica, tipo_plato, cantidad_porciones, merma_pct, mano_obra_pct, imagen_chica_url, imagen_banner_url, estado, coeficiente_venta",
+        )
+        .eq("id_receta", idReceta)
+        .single<RecetaEditable>(),
+      supabase
+        .from("receta_materia_prima")
+        .select("id_detalle, id_materia_prima, cantidad_usada, id_unidad_receta, orden")
+        .eq("id_receta", idReceta)
+        .order("orden")
+        .returns<LineaExistente[]>(),
+      supabase
+        .from("materia_prima")
+        .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra")
+        .eq("estado", true)
+        .order("nombre")
+        .returns<InsumoCatalogo[]>(),
+      supabase
+        .from("unidad_medida")
+        .select("id_unidad, nombre, simbolo, magnitud, factor_a_base")
+        .eq("activa", true)
+        .order("nombre")
+        .returns<UnidadCatalogo[]>(),
+    ]);
 
   if (errorReceta || !receta) {
     notFound();
   }
 
-  const coeficienteVentaDefecto =
-    typeof coeficienteVentaDefectoRpc === "number" ? coeficienteVentaDefectoRpc : null;
-
   return (
-    <>
-      <EncabezadoPagina titulo="Editor de receta" subtitulo={receta.nombre_plato} />
-      <Box sx={{ p: 4 }}>
-        <BotonEnlace href="/backoffice/recetas" sx={{ mb: 2 }}>
-          ← Recetas
-        </BotonEnlace>
-        <EditorReceta
-          receta={receta}
-          lineasIniciales={lineas ?? []}
-          insumos={insumos ?? []}
-          unidades={unidades ?? []}
-          coeficienteVentaDefecto={coeficienteVentaDefecto}
-          soloLectura={soloLectura}
-          puedeEditarVentaIndividual={puedeEditarVentaIndividual}
-        />
-      </Box>
-    </>
+    <FormularioReceta
+      modo={receta}
+      lineasIniciales={lineas ?? []}
+      insumos={insumos ?? []}
+      unidades={unidades ?? []}
+      puedeEditarComposicion={puedeEditarComposicion}
+      puedeEditarMargen={puedeEditarMargen}
+    />
   );
 }

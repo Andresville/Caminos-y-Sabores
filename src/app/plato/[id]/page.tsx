@@ -43,7 +43,7 @@ export default async function PaginaDetallePlato({ params }: { params: Promise<{
             height: { xs: 220, sm: 340 },
             borderRadius: 4,
             mb: 4,
-            backgroundImage: `url(${plato.imagenUrl ?? IMAGEN_PLACEHOLDER})`,
+            backgroundImage: `url(${plato.imagenBannerUrl ?? IMAGEN_PLACEHOLDER})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             bgcolor: paletaCliente.fondoClaro,
@@ -119,7 +119,7 @@ export default async function PaginaDetallePlato({ params }: { params: Promise<{
                 tipoItem="RECETA"
                 idReferencia={plato.idReceta}
                 nombre={plato.nombre}
-                imagenUrl={plato.imagenUrl}
+                imagenUrl={plato.imagenChicaUrl}
                 etiquetaCantidad="Cantidad de platos"
                 cantidadMinima={plato.cantidadPorciones}
               />

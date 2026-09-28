@@ -10,7 +10,7 @@ export class ErrorUnidadesIncompatibles extends Error {
 export class ErrorMermaInvalida extends Error {
   constructor(valorRecibido: string) {
     super(
-      `El porcentaje de merma debe ser mayor o igual a 0 y menor a 100. Valor recibido: ${valorRecibido}`,
+      `El porcentaje de merma de la receta debe ser mayor o igual a 0 y menor a 100. Valor recibido: ${valorRecibido}`,
     );
     this.name = "ErrorMermaInvalida";
   }

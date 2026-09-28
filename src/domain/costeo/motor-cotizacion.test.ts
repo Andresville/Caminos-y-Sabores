@@ -2,10 +2,13 @@ import { describe, expect, test } from "vitest";
 import Decimal from "decimal.js";
 import {
   calcularDotacionMozos,
+  coeficienteDesdeMargen,
+  coeficienteDesdeMargenSobreCosto,
   costoDeAdicional,
   costoDirectoEvento,
   costoMenuPorInvitado,
   costoTotalEvento,
+  margenSobreCosto,
   margenSobreVenta,
   precioFinal,
   precioNeto,
@@ -128,5 +131,23 @@ describe("margenSobreVenta", () => {
     const margen = margenSobreVenta(new Decimal(1.45));
 
     expect(margen.times(100).toFixed(2)).toBe("31.03");
+  });
+});
+
+describe("coeficienteDesdeMargen", () => {
+  test("es la inversa de margenSobreVenta", () => {
+    const coeficiente = coeficienteDesdeMargen(new Decimal("31.03"));
+
+    expect(coeficiente.toFixed(2)).toBe("1.45");
+  });
+});
+
+describe("margen como recargo directo sobre el costo (Recetas)", () => {
+  test("un margen de 30% da un coeficiente de 1,30, no 1,4286", () => {
+    expect(coeficienteDesdeMargenSobreCosto(new Decimal(30)).toFixed(2)).toBe("1.30");
+  });
+
+  test("es la inversa de margenSobreCosto", () => {
+    expect(margenSobreCosto(new Decimal("1.30")).times(100).toFixed(2)).toBe("30.00");
   });
 });

@@ -112,7 +112,12 @@ export default function ResumenPresupuesto() {
         )}
 
         <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${paletaCliente.borde}`, pt: 2 }}>
-          <Typography sx={{ fontWeight: 700, color: paletaCliente.textoOscuro }}>Total estimado</Typography>
+          <Box>
+            <Typography sx={{ fontWeight: 700, color: paletaCliente.textoOscuro }}>Total estimado</Typography>
+            <Typography variant="caption" sx={{ color: paletaCliente.textoMuted }}>
+              Incluye IVA
+            </Typography>
+          </Box>
           <Typography sx={{ fontFamily: fuenteEncabezados, fontWeight: 700, fontSize: "1.5rem", color: paletaCliente.primario }}>
             {formatoMoneda.format(pedidoPendiente.desglose.montoTotal)}
           </Typography>

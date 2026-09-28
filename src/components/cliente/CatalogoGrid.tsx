@@ -74,7 +74,7 @@ export default function CatalogoGrid({
               href={`/plato/${plato.idReceta}`}
               nombre={plato.nombre}
               descripcion={plato.descripcion}
-              imagenUrl={plato.imagenUrl}
+              imagenUrl={plato.imagenChicaUrl}
             />
           ))}
         </Grid>

@@ -45,7 +45,3 @@ export const TIPOS_PLATO = [
   { value: "MESA_DULCE", label: "Mesa dulce" },
   { value: "RECEPCION", label: "Recepción" },
 ] as const;
-
-export function etiquetaTipoPlato(valor: string): string {
-  return TIPOS_PLATO.find((t) => t.value === valor)?.label ?? valor;
-}
