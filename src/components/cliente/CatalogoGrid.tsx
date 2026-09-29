@@ -60,7 +60,7 @@ export default function CatalogoGrid({
               href={`/menu/${menu.idMenu}`}
               nombre={menu.nombre}
               descripcion={menu.composicion.map((plato) => plato.nombrePlato).join(" + ") || menu.descripcion}
-              imagenUrl={menu.imagenUrl}
+              imagenUrl={menu.imagenChicaUrl}
             />
           ))}
         </Grid>

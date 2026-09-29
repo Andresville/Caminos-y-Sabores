@@ -1,25 +1,23 @@
 import { redirect } from "next/navigation";
-import Decimal from "decimal.js";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
-import EncabezadoPagina from "@/components/EncabezadoPagina";
-import { calcularPrecioMenu, type ParametrosComerciales } from "./calculo";
-import TablaMenus, { type FilaMenu } from "./TablaMenus";
+import GaleriaMenus, { type FilaMenu } from "./GaleriaMenus";
 
 interface MenuDb {
   id_menu: number;
   nombre_menu: string;
+  descripcion: string | null;
   pax_minimo: number;
-  coeficiente_venta: number;
+  imagen_chica_url: string | null;
   estado: boolean;
 }
 
 interface LineaMenuDb {
   id_menu: number;
-  porciones_por_pax: number;
-  receta: { costo_por_porcion: number | null } | null;
+  orden: number;
+  receta: { nombre_plato: string } | null;
 }
 
 export default async function PaginaMenus() {
@@ -31,76 +29,39 @@ export default async function PaginaMenus() {
 
   const supabase = await createClient();
 
-  const [{ data: menus, error }, { data: lineas }, { data: parametros }] = await Promise.all([
+  const [{ data: menus, error }, { data: lineas }] = await Promise.all([
     supabase
       .from("menu")
-      .select("id_menu, nombre_menu, pax_minimo, coeficiente_venta, estado")
+      .select("id_menu, nombre_menu, descripcion, pax_minimo, imagen_chica_url, estado")
       .order("nombre_menu")
       .returns<MenuDb[]>(),
     supabase
       .from("menu_receta")
-      .select("id_menu, porciones_por_pax, receta:id_receta ( costo_por_porcion )")
+      .select("id_menu, orden, receta:id_receta ( nombre_plato )")
+      .order("orden")
       .returns<LineaMenuDb[]>(),
-    supabase
-      .from("parametro_sistema")
-      .select("clave, valor")
-      .in("clave", ["GASTOS_GENERALES_PCT", "IVA_PORCENTAJE", "REDONDEO_PRECIO_FINAL"]),
   ]);
 
-  const mapaParametros = new Map((parametros ?? []).map((p) => [p.clave, Number(p.valor)]));
-  const parametrosComerciales: ParametrosComerciales = {
-    gastosGeneralesPct: mapaParametros.get("GASTOS_GENERALES_PCT") ?? 0,
-    ivaPorcentaje: mapaParametros.get("IVA_PORCENTAJE") ?? 0,
-    redondeoPrecioFinal: mapaParametros.get("REDONDEO_PRECIO_FINAL") ?? 1,
-  };
-
-  const filas: FilaMenu[] = (menus ?? []).map((menu) => {
-    const recetasDelMenu = (lineas ?? [])
-      .filter((linea) => linea.id_menu === menu.id_menu && linea.receta?.costo_por_porcion != null)
-      .map((linea) => ({
-        costoPorPorcion: linea.receta!.costo_por_porcion as number,
-        porcionesPorPax: linea.porciones_por_pax,
-      }));
-
-    let costoPorPax: number | null = null;
-    let precioPublico: number | null = null;
-
-    if (recetasDelMenu.length > 0) {
-      const resultado = calcularPrecioMenu(
-        recetasDelMenu.map((r) => ({
-          costoPorPorcion: new Decimal(r.costoPorPorcion),
-          porcionesPorPax: new Decimal(r.porcionesPorPax),
-        })),
-        menu.coeficiente_venta,
-        parametrosComerciales,
-      );
-      costoPorPax = resultado.costoPorPax.toNumber();
-      precioPublico = resultado.precioFinal.toNumber();
-    }
-
-    return {
-      id_menu: menu.id_menu,
-      nombre_menu: menu.nombre_menu,
-      pax_minimo: menu.pax_minimo,
-      coeficiente_venta: menu.coeficiente_venta,
-      estado: menu.estado,
-      cantidad_recetas: recetasDelMenu.length,
-      costo_por_pax: costoPorPax,
-      precio_publico: precioPublico,
-    };
-  });
+  const filas: FilaMenu[] = (menus ?? []).map((menu) => ({
+    id_menu: menu.id_menu,
+    nombre_menu: menu.nombre_menu,
+    descripcion: menu.descripcion,
+    pax_minimo: menu.pax_minimo,
+    imagen_chica_url: menu.imagen_chica_url,
+    estado: menu.estado,
+    nombres_recetas: (lineas ?? [])
+      .filter((linea) => linea.id_menu === menu.id_menu && linea.receta)
+      .map((linea) => linea.receta!.nombre_plato),
+  }));
 
   return (
-    <>
-      <EncabezadoPagina titulo="Menús" subtitulo="Composición de menús comerciales a partir de recetas activas" />
-      <Box sx={{ p: 4 }}>
-        {error && (
-          <Typography color="error" sx={{ mb: 2 }}>
-            No se pudo cargar el listado: {error.message}
-          </Typography>
-        )}
-        <TablaMenus menus={filas} />
-      </Box>
-    </>
+    <Box sx={{ p: 4 }}>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          No se pudo cargar el listado: {error.message}
+        </Typography>
+      )}
+      <GaleriaMenus menus={filas} />
+    </Box>
   );
 }

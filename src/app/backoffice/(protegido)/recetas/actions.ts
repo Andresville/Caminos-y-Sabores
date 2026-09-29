@@ -11,6 +11,13 @@ export interface EstadoFormulario {
   error?: string;
 }
 
+function mensajeAmigable(codigo: string | undefined, mensajeOriginal: string): string {
+  if (codigo === "22001") {
+    return "El nombre de la receta es demasiado largo (máximo 100 caracteres).";
+  }
+  return mensajeOriginal;
+}
+
 /** Solo Asistente Comercial/Administrador definen el margen de una receta cuando se vende suelta como "plato" — Cocina no edita esto. Toda receta activa se publica automáticamente; esto solo define el margen propio y el coeficiente que resulta. */
 export async function actualizarVentaIndividualReceta(datos: {
   idReceta: number;
@@ -155,7 +162,7 @@ export async function guardarReceta(datos: {
     p_costo_por_porcion: costoPorPorcion.toNumber(),
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: mensajeAmigable(error.code, error.message) };
 
   revalidatePath("/backoffice/recetas");
 

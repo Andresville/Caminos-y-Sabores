@@ -1,7 +1,5 @@
 import Decimal from "decimal.js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { costoMenuPorInvitado, type RecetaEnMenu } from "@/domain/costeo";
-import { calcularPrecioMenu, type ParametrosComerciales as ParametrosMenu } from "@/app/backoffice/(protegido)/menus/calculo";
 import { calcularPrecioPublico, type ParametrosComerciales } from "./calculo";
 
 /** Orden de presentación de un menú (entrada antes que principal, etc.), independiente del orden en que el Chef haya cargado cada línea al componerlo. */
@@ -61,26 +59,38 @@ export interface MenuPublico {
   nombre: string;
   descripcion: string | null;
   paxMinimo: number;
-  precioPorPersona: number;
   composicion: PlatoDeMenu[];
-  imagenUrl: string | null;
+  /** Foto chica del catálogo (grilla de menús). */
+  imagenChicaUrl: string | null;
+  /** Foto banner del detalle del menú. */
+  imagenBannerUrl: string | null;
 }
 
 interface FilaMenuReceta {
   id_menu: number;
   id_receta: number;
   tipo_plato: string;
-  porciones_por_pax: number;
   orden: number;
-  receta: { costo_por_porcion: number | null; estado: string; nombre_plato: string; descripcion_publica: string | null } | null;
+  receta: {
+    costo_por_porcion: number | null;
+    coeficiente_venta: number | null;
+    estado: string;
+    nombre_plato: string;
+    descripcion_publica: string | null;
+  } | null;
 }
 
-export async function obtenerMenusPublicos(parametros: ParametrosPortal): Promise<MenuPublico[]> {
+/**
+ * El menú no tiene margen propio: cada receta que lo compone ya trae
+ * el suyo (ver módulo Recetas). El precio de un menú es la suma del
+ * precio ya calculado de cada receta incluida.
+ */
+export async function obtenerMenusPublicos(): Promise<MenuPublico[]> {
   const supabase = createAdminClient();
 
   const { data: menus } = await supabase
     .from("menu")
-    .select("id_menu, nombre_menu, descripcion, coeficiente_venta, pax_minimo")
+    .select("id_menu, nombre_menu, descripcion, pax_minimo, imagen_chica_url, imagen_banner_url")
     .eq("estado", true)
     .order("nombre_menu");
 
@@ -88,23 +98,12 @@ export async function obtenerMenusPublicos(parametros: ParametrosPortal): Promis
 
   const idsMenu = menus.map((m) => m.id_menu);
 
-  const [{ data: composicion }, { data: fotos }] = await Promise.all([
-    supabase
-      .from("menu_receta")
-      .select(
-        "id_menu, id_receta, tipo_plato, porciones_por_pax, orden, receta:id_receta(costo_por_porcion, estado, nombre_plato, descripcion_publica)",
-      )
-      .in("id_menu", idsMenu)
-      .order("orden")
-      .returns<FilaMenuReceta[]>(),
-    supabase.from("menu_foto_plato").select("id_menu, id_receta, imagen_url").in("id_menu", idsMenu),
-  ]);
-
-  const parametrosMenu: ParametrosMenu = {
-    gastosGeneralesPct: parametros.gastosGeneralesPct,
-    ivaPorcentaje: parametros.ivaPorcentaje,
-    redondeoPrecioFinal: parametros.redondeoPrecioFinal,
-  };
+  const { data: composicion } = await supabase
+    .from("menu_receta")
+    .select("id_menu, id_receta, tipo_plato, orden, receta:id_receta(costo_por_porcion, coeficiente_venta, estado, nombre_plato, descripcion_publica)")
+    .in("id_menu", idsMenu)
+    .order("orden")
+    .returns<FilaMenuReceta[]>();
 
   const resultado: MenuPublico[] = [];
 
@@ -113,36 +112,22 @@ export async function obtenerMenusPublicos(parametros: ParametrosPortal): Promis
       .filter((linea) => linea.id_menu === menu.id_menu)
       .sort((a, b) => (ORDEN_TIPO_PLATO[a.tipo_plato] ?? 99) - (ORDEN_TIPO_PLATO[b.tipo_plato] ?? 99));
 
-    // Un menú con alguna receta sin costo calculado (o inactiva) no se publica en el portal.
-    const tieneRecetaSinCosto = lineas.some(
-      (linea) => !linea.receta || linea.receta.estado !== "ACTIVA" || linea.receta.costo_por_porcion == null,
-    );
-    if (lineas.length === 0 || tieneRecetaSinCosto) continue;
-
-    const recetasDominio: RecetaEnMenu[] = lineas.map((linea) => ({
-      costoPorPorcion: new Decimal(linea.receta!.costo_por_porcion!),
-      porcionesPorPax: new Decimal(linea.porciones_por_pax),
-    }));
-
-    const { precioFinal } = calcularPrecioMenu(recetasDominio, menu.coeficiente_venta, parametrosMenu);
-
-    // Primera foto de plato que tenga este menú, si alguna receta de su composición tiene una cargada.
-    const primeraFoto = (fotos ?? []).find(
-      (foto) => foto.id_menu === menu.id_menu && lineas.some((linea) => linea.id_receta === foto.id_receta),
-    );
+    // Un menú con alguna receta inactiva no se publica en el portal.
+    const tieneRecetaInactiva = lineas.some((linea) => !linea.receta || linea.receta.estado !== "ACTIVA");
+    if (lineas.length === 0 || tieneRecetaInactiva) continue;
 
     resultado.push({
       idMenu: menu.id_menu,
       nombre: menu.nombre_menu,
       descripcion: menu.descripcion,
       paxMinimo: menu.pax_minimo,
-      precioPorPersona: precioFinal.toNumber(),
       composicion: lineas.map((linea) => ({
         tipoPlato: linea.tipo_plato,
         nombrePlato: linea.receta!.nombre_plato,
         descripcionPublica: linea.receta!.descripcion_publica,
       })),
-      imagenUrl: primeraFoto?.imagen_url ?? null,
+      imagenChicaUrl: menu.imagen_chica_url,
+      imagenBannerUrl: menu.imagen_banner_url,
     });
   }
 
@@ -152,18 +137,18 @@ export async function obtenerMenusPublicos(parametros: ParametrosPortal): Promis
 export interface MenuParaCalculo {
   idMenu: number;
   nombreMenu: string;
-  coeficienteVenta: number;
-  costoPorPersona: Decimal;
   paxMinimo: number;
+  /** Ya es el precio neto por invitado (suma del precio ya marginado de cada receta), no un costo crudo. */
+  costoPorPersona: Decimal;
 }
 
 /** Datos crudos (para el motor de dominio) del menú elegido en el carrito. null si no existe, está inactivo o alguna receta no tiene costo vigente. */
-export async function obtenerMenuParaCalculo(idMenu: number): Promise<MenuParaCalculo | null> {
+export async function obtenerMenuParaCalculo(idMenu: number, parametros: ParametrosPortal): Promise<MenuParaCalculo | null> {
   const supabase = createAdminClient();
 
   const { data: menu } = await supabase
     .from("menu")
-    .select("nombre_menu, coeficiente_venta, pax_minimo, estado")
+    .select("nombre_menu, pax_minimo, estado")
     .eq("id_menu", idMenu)
     .single();
 
@@ -171,9 +156,9 @@ export async function obtenerMenuParaCalculo(idMenu: number): Promise<MenuParaCa
 
   const { data: lineas } = await supabase
     .from("menu_receta")
-    .select("porciones_por_pax, receta:id_receta(costo_por_porcion, estado)")
+    .select("receta:id_receta(costo_por_porcion, coeficiente_venta, estado)")
     .eq("id_menu", idMenu)
-    .returns<Pick<FilaMenuReceta, "porciones_por_pax" | "receta">[]>();
+    .returns<Pick<FilaMenuReceta, "receta">[]>();
 
   if (!lineas || lineas.length === 0) return null;
   const tieneRecetaSinCosto = lineas.some(
@@ -181,17 +166,23 @@ export async function obtenerMenuParaCalculo(idMenu: number): Promise<MenuParaCa
   );
   if (tieneRecetaSinCosto) return null;
 
-  const recetasDominio: RecetaEnMenu[] = lineas.map((linea) => ({
-    costoPorPorcion: new Decimal(linea.receta!.costo_por_porcion!),
-    porcionesPorPax: new Decimal(linea.porciones_por_pax),
-  }));
+  const costoPorPersona = lineas.reduce((acumulado, linea) => {
+    const precioReceta = calcularPrecioPublico(
+      {
+        coeficienteVenta: linea.receta!.coeficiente_venta ?? parametros.coeficienteVentaDefecto,
+        costoUnitario: linea.receta!.costo_por_porcion!,
+      },
+      parametros,
+      false,
+    );
+    return acumulado.plus(precioReceta);
+  }, new Decimal(0));
 
   return {
     idMenu,
     nombreMenu: menu.nombre_menu,
-    coeficienteVenta: menu.coeficiente_venta,
     paxMinimo: menu.pax_minimo,
-    costoPorPersona: costoMenuPorInvitado(recetasDominio),
+    costoPorPersona,
   };
 }
 

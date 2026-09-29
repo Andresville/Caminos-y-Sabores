@@ -15,7 +15,7 @@ import FooterCliente from "@/components/cliente/FooterCliente";
 import SelectorCantidadCarrito from "@/components/cliente/SelectorCantidadCarrito";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
-import { obtenerMenusPublicos, obtenerParametrosPortal } from "@/lib/cotizador/datos";
+import { obtenerMenusPublicos } from "@/lib/cotizador/datos";
 
 const ETIQUETA_TIPO_PLATO: Record<string, string> = {
   ENTRADA: "Entrada",
@@ -40,8 +40,7 @@ export default async function PaginaDetalleMenu({ params }: { params: Promise<{ 
   const idMenu = Number(id);
   if (!Number.isInteger(idMenu)) notFound();
 
-  const parametros = await obtenerParametrosPortal();
-  const menus = await obtenerMenusPublicos(parametros);
+  const menus = await obtenerMenusPublicos();
   const menu = menus.find((m) => m.idMenu === idMenu);
   if (!menu) notFound();
 
@@ -61,7 +60,7 @@ export default async function PaginaDetalleMenu({ params }: { params: Promise<{ 
             height: { xs: 220, sm: 340 },
             borderRadius: 4,
             mb: 4,
-            backgroundImage: `url(${menu.imagenUrl ?? IMAGEN_PLACEHOLDER})`,
+            backgroundImage: `url(${menu.imagenBannerUrl ?? IMAGEN_PLACEHOLDER})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             bgcolor: paletaCliente.fondoClaro,
@@ -146,7 +145,7 @@ export default async function PaginaDetalleMenu({ params }: { params: Promise<{ 
                 tipoItem="MENU"
                 idReferencia={menu.idMenu}
                 nombre={menu.nombre}
-                imagenUrl={menu.imagenUrl}
+                imagenUrl={menu.imagenChicaUrl}
                 etiquetaCantidad="Cantidad de menús"
                 cantidadMinima={menu.paxMinimo}
               />

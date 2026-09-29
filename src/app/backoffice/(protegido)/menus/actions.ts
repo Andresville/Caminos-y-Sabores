@@ -8,66 +8,44 @@ export interface EstadoFormulario {
   error?: string;
 }
 
-export async function crearMenu(
-  _estadoPrevio: EstadoFormulario,
-  formData: FormData,
-): Promise<EstadoFormulario> {
-  const nombreMenu = String(formData.get("nombre_menu") ?? "").trim();
-  const descripcion = String(formData.get("descripcion") ?? "").trim();
-  const paxMinimo = Number(formData.get("pax_minimo"));
-
-  if (!nombreMenu) return { error: "Ingresá el nombre del menú." };
-  if (!Number.isFinite(paxMinimo) || paxMinimo <= 0) {
-    return { error: "El pax mínimo debe ser mayor a cero." };
+function mensajeAmigable(codigo: string | undefined, mensajeOriginal: string): string {
+  if (codigo === "22001") {
+    return "El nombre del menú es demasiado largo (máximo 100 caracteres).";
   }
-
-  const supabase = await createClient();
-
-  const { data: coeficienteDefecto, error: errorParametro } = await supabase.rpc(
-    "obtener_coeficiente_venta_defecto",
-  );
-
-  if (errorParametro || typeof coeficienteDefecto !== "number") {
-    return { error: "No se pudo leer el coeficiente de venta por defecto." };
-  }
-
-  const { data, error } = await supabase
-    .from("menu")
-    .insert({
-      nombre_menu: nombreMenu,
-      descripcion: descripcion || null,
-      pax_minimo: paxMinimo,
-      coeficiente_venta: coeficienteDefecto,
-      estado: false,
-    })
-    .select("id_menu")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "No se pudo crear el menú." };
-  }
-
-  revalidatePath("/backoffice/menus");
-  redirect(`/backoffice/menus/${data.id_menu}`);
+  return mensajeOriginal;
 }
 
 export interface LineaMenuEntrada {
   id_receta: number;
   tipo_plato: string;
-  porciones_por_pax: number;
 }
 
-export async function guardarComposicionMenu(datos: {
-  idMenu: number;
+/**
+ * Alta o edición de un menú completo (encabezado + recetas incluidas)
+ * en un solo paso, vía guardar_composicion_menu() — que crea el menú
+ * cuando no recibe un id existente y valida ahí mismo que la cantidad
+ * mínima de personas del menú no sea menor a la de ninguna receta
+ * incluida.
+ */
+export async function guardarMenu(datos: {
+  idMenu: number | null;
   nombreMenu: string;
   descripcion: string;
   paxMinimo: number;
+  imagenChicaUrl: string | null;
+  imagenBannerUrl: string | null;
   estado: boolean;
   lineas: LineaMenuEntrada[];
 }): Promise<EstadoFormulario> {
   if (!datos.nombreMenu.trim()) return { error: "Ingresá el nombre del menú." };
   if (!Number.isFinite(datos.paxMinimo) || datos.paxMinimo <= 0) {
-    return { error: "El pax mínimo debe ser mayor a cero." };
+    return { error: "La cantidad mínima de personas debe ser mayor a cero." };
+  }
+  if (datos.estado && datos.lineas.length === 0) {
+    return { error: "No se puede activar un menú sin recetas incluidas." };
+  }
+  if (datos.estado && (!datos.imagenChicaUrl || !datos.imagenBannerUrl)) {
+    return { error: "No se puede activar un menú sin sus dos fotos cargadas." };
   }
 
   const supabase = await createClient();
@@ -75,67 +53,27 @@ export async function guardarComposicionMenu(datos: {
   const lineasJson = datos.lineas.map((linea) => ({
     id_receta: linea.id_receta,
     tipo_plato: linea.tipo_plato,
-    porciones_por_pax: linea.porciones_por_pax,
   }));
 
-  const { error } = await supabase.rpc("guardar_composicion_menu", {
+  const { data: resultado, error } = await supabase.rpc("guardar_composicion_menu", {
     p_id_menu: datos.idMenu,
     p_nombre_menu: datos.nombreMenu,
-    p_descripcion: datos.descripcion || null,
+    p_descripcion: datos.descripcion.trim() || null,
     p_pax_minimo: datos.paxMinimo,
+    p_imagen_chica_url: datos.imagenChicaUrl,
+    p_imagen_banner_url: datos.imagenBannerUrl,
     p_estado: datos.estado,
     p_lineas: lineasJson,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: mensajeAmigable(error.code, error.message) };
 
   revalidatePath("/backoffice/menus");
-  revalidatePath(`/backoffice/menus/${datos.idMenu}`);
-  return {};
-}
 
-/**
- * La foto se sube directo a Storage desde el navegador (misma RLS);
- * esto solo guarda la URL resultante contra (id_menu, id_receta), o la
- * borra si imagenUrl es null. Se guarda contra la receta, no contra la
- * línea (menu_receta.id_menu_receta), porque esos ids no son estables
- * entre un guardado de composición y el siguiente.
- */
-export async function actualizarFotoPlatoMenu(
-  idMenu: number,
-  idReceta: number,
-  imagenUrl: string | null,
-): Promise<EstadoFormulario> {
-  const supabase = await createClient();
-
-  const { error } = imagenUrl
-    ? await supabase.from("menu_foto_plato").upsert({ id_menu: idMenu, id_receta: idReceta, imagen_url: imagenUrl })
-    : await supabase.from("menu_foto_plato").delete().eq("id_menu", idMenu).eq("id_receta", idReceta);
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/backoffice/menus");
-  revalidatePath(`/backoffice/menus/${idMenu}`);
-  return {};
-}
-
-export async function actualizarCoeficienteMenu(
-  idMenu: number,
-  coeficienteVenta: number,
-): Promise<EstadoFormulario> {
-  if (!Number.isFinite(coeficienteVenta) || coeficienteVenta < 1) {
-    return { error: "El coeficiente de venta debe ser mayor o igual a 1." };
+  if (datos.idMenu === null) {
+    redirect(`/backoffice/menus/${resultado.id_menu}`);
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("menu")
-    .update({ coeficiente_venta: coeficienteVenta })
-    .eq("id_menu", idMenu);
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/backoffice/menus");
-  revalidatePath(`/backoffice/menus/${idMenu}`);
+  revalidatePath(`/backoffice/menus/${datos.idMenu}`);
   return {};
 }

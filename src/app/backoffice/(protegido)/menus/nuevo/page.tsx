@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
+import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
-import EncabezadoPagina from "@/components/EncabezadoPagina";
-import BotonEnlace from "@/components/BotonEnlace";
-import FormularioNuevoMenu from "./FormularioNuevoMenu";
+import FormularioMenu, { type RecetaDisponible } from "../FormularioMenu";
 
 export default async function PaginaNuevoMenu() {
   const usuarioActual = await obtenerUsuarioActual();
@@ -13,19 +10,27 @@ export default async function PaginaNuevoMenu() {
     redirect("/backoffice/menus");
   }
 
+  const supabase = await createClient();
+
+  const [{ data: recetas }, { data: coeficienteVentaDefectoRpc }] = await Promise.all([
+    supabase
+      .from("receta")
+      .select("id_receta, nombre_plato, cantidad_porciones, costo_por_porcion, coeficiente_venta")
+      .eq("estado", "ACTIVA")
+      .order("nombre_plato")
+      .returns<RecetaDisponible[]>(),
+    supabase.rpc("obtener_coeficiente_venta_defecto"),
+  ]);
+
+  const coeficienteVentaDefecto = typeof coeficienteVentaDefectoRpc === "number" ? coeficienteVentaDefectoRpc : 1;
+
   return (
-    <>
-      <EncabezadoPagina titulo="Nuevo menú" />
-      <Box sx={{ p: 4 }}>
-        <BotonEnlace href="/backoffice/menus" sx={{ mb: 2 }}>
-          ← Menús
-        </BotonEnlace>
-        <Typography color="text.secondary" gutterBottom>
-          El coeficiente de venta se hereda del valor por defecto del sistema; lo ajusta Asistente Comercial
-          después si corresponde.
-        </Typography>
-        <FormularioNuevoMenu />
-      </Box>
-    </>
+    <FormularioMenu
+      modo="nuevo"
+      lineasIniciales={[]}
+      recetasDisponibles={recetas ?? []}
+      coeficienteVentaDefecto={coeficienteVentaDefecto}
+      puedeEditar
+    />
   );
 }

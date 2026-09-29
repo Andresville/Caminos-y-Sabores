@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function PaginaInicio() {
   const parametros = await obtenerParametrosPortal();
   const [menus, platos] = await Promise.all([
-    obtenerMenusPublicos(parametros),
+    obtenerMenusPublicos(),
     obtenerPlatosPublicos(parametros),
   ]);
 

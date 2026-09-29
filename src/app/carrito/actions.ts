@@ -32,7 +32,7 @@ async function resolverLineasPrecificadas(
   const idsReceta = items.filter((item) => item.tipoItem === "RECETA").map((item) => item.idReferencia);
 
   const [menus, recetas] = await Promise.all([
-    Promise.all(idsMenu.map((idMenu) => obtenerMenuParaCalculo(idMenu))),
+    Promise.all(idsMenu.map((idMenu) => obtenerMenuParaCalculo(idMenu, parametros))),
     Promise.all(idsReceta.map((idReceta) => obtenerRecetaParaCalculo(idReceta, parametros))),
   ]);
 
@@ -49,7 +49,7 @@ async function resolverLineasPrecificadas(
         idReferencia: menu.idMenu,
         descripcion: menu.nombreMenu,
         cantidad: item.cantidad,
-        coeficienteVenta: menu.coeficienteVenta,
+        coeficienteVenta: 1, // el menú ya no tiene margen propio: costoPorPersona ya viene con el margen de cada receta incluido
         costoUnitario: menu.costoPorPersona,
       });
     } else if (item.tipoItem === "RECETA") {
