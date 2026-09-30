@@ -22,12 +22,13 @@ import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
 export const dynamic = "force-dynamic";
 
 const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning" | "success" | "error" | "default" }> = {
-  EMITIDA: { texto: "Solicitado", color: "warning" },
-  EN_NEGOCIACION: { texto: "Pendiente de tu respuesta", color: "warning" },
-  CONFIRMADA: { texto: "Aceptado", color: "success" },
+  SOLICITADO: { texto: "Solicitado", color: "warning" },
+  APROBADO: { texto: "Aceptado", color: "success" },
+  EN_NEGOCIACION: { texto: "En negociación con nuestro equipo", color: "warning" },
+  FINALIZADO: { texto: "Finalizado", color: "success" },
+  CANCELADO: { texto: "Cancelado", color: "error" },
   RECHAZADA: { texto: "Rechazado", color: "error" },
   VENCIDA: { texto: "Vencido", color: "default" },
-  EJECUTADA: { texto: "Ejecutado", color: "success" },
 };
 
 export default async function PaginaDetallePresupuesto({ params }: { params: Promise<{ id: string }> }) {
@@ -57,7 +58,7 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
   const serviciosSolicitados = (detalle ?? []).filter((linea) => linea.precio_unitario_congelado === 0);
 
   const badge = ETIQUETAS_ESTADO[cotizacion.estado] ?? { texto: cotizacion.estado, color: "default" as const };
-  const puedeResponder = cotizacion.estado === "EMITIDA" || cotizacion.estado === "EN_NEGOCIACION";
+  const puedeResponder = cotizacion.estado === "SOLICITADO";
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: paletaCliente.fondo }}>
@@ -168,7 +169,7 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
 
         {puedeResponder && <AccionesRespuesta idCotizacion={cotizacion.id_cotizacion} />}
 
-        {cotizacion.estado === "CONFIRMADA" && (
+        {cotizacion.estado === "APROBADO" && (
           <Alert severity="success">
             ¡Presupuesto aceptado! Nuestro equipo comercial se va a poner en contacto para coordinar los
             detalles finales.

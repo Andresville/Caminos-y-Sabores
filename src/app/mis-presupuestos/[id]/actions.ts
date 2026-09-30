@@ -7,7 +7,7 @@ export interface EstadoRespuesta {
   error?: string;
 }
 
-/** El cliente acepta o rechaza su propia cotización — la función valida internamente que le pertenezca y que todavía admita respuesta (EMITIDA o EN_NEGOCIACION). El motivo solo se guarda cuando rechaza. */
+/** El cliente acepta o rechaza su propia cotización — la función valida internamente que le pertenezca y que todavía esté Solicitada (de ahí en más, todo el seguimiento lo maneja Comercial desde el backoffice). El motivo solo se guarda cuando rechaza. */
 export async function responderPresupuesto(
   idCotizacion: number,
   aceptar: boolean,

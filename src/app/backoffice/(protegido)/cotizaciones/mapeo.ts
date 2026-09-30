@@ -1,48 +1,57 @@
 export type EstadoCotizacion =
-  | "EMITIDA"
+  | "SOLICITADO"
+  | "APROBADO"
   | "EN_NEGOCIACION"
-  | "CONFIRMADA"
+  | "FINALIZADO"
+  | "CANCELADO"
   | "RECHAZADA"
-  | "VENCIDA"
-  | "EJECUTADA";
+  | "VENCIDA";
 
 export const ETIQUETA_ESTADO: Record<EstadoCotizacion, string> = {
-  EMITIDA: "Emitida",
+  SOLICITADO: "Solicitado",
+  APROBADO: "Aprobado por el cliente",
   EN_NEGOCIACION: "En negociación",
-  CONFIRMADA: "Confirmada",
+  FINALIZADO: "Finalizado",
+  CANCELADO: "Cancelado",
   RECHAZADA: "Rechazada",
   VENCIDA: "Vencida",
-  EJECUTADA: "Ejecutada",
 };
 
 export const COLOR_ESTADO: Record<
   EstadoCotizacion,
-  "info" | "warning" | "success" | "error" | "default"
+  "info" | "warning" | "success" | "error" | "default" | "secondary"
 > = {
-  EMITIDA: "info",
-  EN_NEGOCIACION: "warning",
-  CONFIRMADA: "success",
+  SOLICITADO: "warning",
+  APROBADO: "success",
+  EN_NEGOCIACION: "secondary",
+  FINALIZADO: "success",
+  CANCELADO: "default",
   RECHAZADA: "error",
   VENCIDA: "default",
-  EJECUTADA: "success",
 };
 
 /**
- * Transiciones que un usuario puede disparar manualmente desde la UI,
- * siguiendo el diagrama de estados del documento. EMITIDA -> VENCIDA
- * queda deliberadamente afuera: en el diagrama es automática (por
- * vencimiento de fecha), no una acción manual; la base de datos la
- * permite para cuando exista ese proceso programado, pero acá no se
- * ofrece como botón.
+ * Transiciones manuales disponibles para Comercial/Administrador desde
+ * el backoffice. SOLICITADO no tiene ninguna: ahí el único que decide
+ * es el cliente (aceptar/rechazar desde su cuenta), Comercial solo
+ * puede ajustar cantidades/descuento y reenviar (ver
+ * ajustarSolicitud), no cambiar el estado directamente. VENCIDA no
+ * tiene disparador manual: es automática por fecha (todavía sin un
+ * proceso programado que la aplique).
  */
 export const TRANSICIONES_MANUALES: Record<EstadoCotizacion, { estado: EstadoCotizacion; etiqueta: string }[]> = {
-  EMITIDA: [{ estado: "EN_NEGOCIACION", etiqueta: "Iniciar negociación" }],
+  SOLICITADO: [],
+  APROBADO: [
+    { estado: "EN_NEGOCIACION", etiqueta: "Pasar a negociación" },
+    { estado: "FINALIZADO", etiqueta: "Aprobar y enviar a Eventos" },
+    { estado: "CANCELADO", etiqueta: "Cancelar" },
+  ],
   EN_NEGOCIACION: [
-    { estado: "CONFIRMADA", etiqueta: "Confirmar" },
-    { estado: "RECHAZADA", etiqueta: "Rechazar" },
+    { estado: "FINALIZADO", etiqueta: "Convertir en evento" },
+    { estado: "CANCELADO", etiqueta: "Cancelar" },
   ],
   VENCIDA: [{ estado: "RECHAZADA", etiqueta: "Descartar" }],
-  CONFIRMADA: [{ estado: "EJECUTADA", etiqueta: "Marcar como ejecutada" }],
+  FINALIZADO: [],
+  CANCELADO: [],
   RECHAZADA: [],
-  EJECUTADA: [],
 };

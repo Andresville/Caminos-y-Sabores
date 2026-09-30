@@ -121,7 +121,7 @@ export type ResultadoEnvioPedido =
 /**
  * "Solicitar contacto comercial": recalcula todo desde cero en el
  * servidor (nunca confía en el total que mandó el navegador) y
- * persiste la cotización en estado EMITIDA — un estimado automático,
+ * persiste la cotización en estado SOLICITADO — un estimado automático,
  * todavía no revisado por Comercial.
  */
 export async function enviarPedido(entrada: EntradaEnvioPedido): Promise<ResultadoEnvioPedido> {

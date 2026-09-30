@@ -28,7 +28,7 @@ export default async function LayoutBackofficeProtegido({
     const { count } = await supabase
       .from("cotizacion")
       .select("id_cotizacion", { count: "exact", head: true })
-      .eq("estado", "EMITIDA");
+      .eq("estado", "APROBADO");
     solicitudesPendientes = count ?? 0;
   }
 

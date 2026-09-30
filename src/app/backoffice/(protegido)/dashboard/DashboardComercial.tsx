@@ -11,12 +11,13 @@ import TarjetaEstadistica from "./TarjetaEstadistica";
 const DIAS_PROXIMA_A_VENCER = 3;
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
-  EMITIDA: "Emitidas",
+  SOLICITADO: "Solicitadas",
+  APROBADO: "Aprobadas",
   EN_NEGOCIACION: "En negociación",
-  CONFIRMADA: "Confirmadas",
+  FINALIZADO: "Finalizadas",
+  CANCELADO: "Canceladas",
   RECHAZADA: "Rechazadas",
   VENCIDA: "Vencidas",
-  EJECUTADA: "Ejecutadas",
 };
 
 export default async function DashboardComercial() {
@@ -37,17 +38,17 @@ export default async function DashboardComercial() {
     return acumulado;
   }, {});
 
-  const montoConfirmado = lista
-    .filter((c) => c.estado === "CONFIRMADA" || c.estado === "EJECUTADA")
+  const montoFinalizado = lista
+    .filter((c) => c.estado === "FINALIZADO")
     .reduce((acumulado, c) => acumulado + Number(c.monto_total), 0);
 
-  const convertidas = (porEstado.CONFIRMADA ?? 0) + (porEstado.EJECUTADA ?? 0);
+  const convertidas = porEstado.FINALIZADO ?? 0;
   const tasaConversion = total > 0 ? (convertidas / total) * 100 : 0;
 
   const proximasAVencer = lista
     .filter(
       (c) =>
-        (c.estado === "EMITIDA" || c.estado === "EN_NEGOCIACION") &&
+        (c.estado === "SOLICITADO" || c.estado === "EN_NEGOCIACION") &&
         new Date(c.fecha_validez) <= limiteVencimiento,
     )
     .sort((a, b) => new Date(a.fecha_validez).getTime() - new Date(b.fecha_validez).getTime());
@@ -56,7 +57,7 @@ export default async function DashboardComercial() {
     <Stack spacing={3}>
       <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
         <TarjetaEstadistica etiqueta="Cotizaciones totales" valor={total} />
-        <TarjetaEstadistica etiqueta="Monto confirmado" valor={formatoMoneda.format(montoConfirmado)} />
+        <TarjetaEstadistica etiqueta="Monto finalizado" valor={formatoMoneda.format(montoFinalizado)} />
         <TarjetaEstadistica etiqueta="Tasa de conversión" valor={`${tasaConversion.toFixed(0)}%`} />
         <TarjetaEstadistica
           etiqueta={`Vencen en ${DIAS_PROXIMA_A_VENCER} días`}

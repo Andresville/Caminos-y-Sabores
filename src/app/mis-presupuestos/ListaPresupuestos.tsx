@@ -24,21 +24,23 @@ export interface FilaPresupuesto {
 }
 
 const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning" | "success" | "error" | "default" }> = {
-  EMITIDA: { texto: "Solicitado", color: "warning" },
-  EN_NEGOCIACION: { texto: "Pendiente de tu respuesta", color: "warning" },
-  CONFIRMADA: { texto: "Aceptado", color: "success" },
+  SOLICITADO: { texto: "Solicitado", color: "warning" },
+  APROBADO: { texto: "Aceptado", color: "success" },
+  EN_NEGOCIACION: { texto: "En negociación con nuestro equipo", color: "warning" },
+  FINALIZADO: { texto: "Finalizado", color: "success" },
+  CANCELADO: { texto: "Cancelado", color: "error" },
   RECHAZADA: { texto: "Rechazado", color: "error" },
   VENCIDA: { texto: "Vencido", color: "default" },
-  EJECUTADA: { texto: "Ejecutado", color: "success" },
 };
 
 type Filtro = "todos" | "solicitados" | "aceptados" | "rechazados";
 
 const CATEGORIA_ESTADO: Record<string, Exclude<Filtro, "todos">> = {
-  EMITIDA: "solicitados",
-  EN_NEGOCIACION: "solicitados",
-  CONFIRMADA: "aceptados",
-  EJECUTADA: "aceptados",
+  SOLICITADO: "solicitados",
+  APROBADO: "aceptados",
+  EN_NEGOCIACION: "aceptados",
+  FINALIZADO: "aceptados",
+  CANCELADO: "rechazados",
   RECHAZADA: "rechazados",
   VENCIDA: "rechazados",
 };
