@@ -24,9 +24,9 @@ export interface FilaPresupuesto {
 }
 
 const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning" | "success" | "error" | "default" }> = {
-  SOLICITADO: { texto: "Solicitado", color: "warning" },
-  APROBADO: { texto: "Aceptado", color: "success" },
-  EN_NEGOCIACION: { texto: "En negociación con nuestro equipo", color: "warning" },
+  PENDIENTE: { texto: "Pendiente", color: "warning" },
+  SOLICITADO: { texto: "Solicitado", color: "success" },
+  EN_NEGOCIACION: { texto: "En negociación", color: "success" },
   FINALIZADO: { texto: "Finalizado", color: "success" },
   CANCELADO: { texto: "Cancelado", color: "error" },
   RECHAZADA: { texto: "Rechazado", color: "error" },
@@ -36,8 +36,8 @@ const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning
 type Filtro = "todos" | "solicitados" | "aceptados" | "rechazados";
 
 const CATEGORIA_ESTADO: Record<string, Exclude<Filtro, "todos">> = {
-  SOLICITADO: "solicitados",
-  APROBADO: "aceptados",
+  PENDIENTE: "solicitados",
+  SOLICITADO: "aceptados",
   EN_NEGOCIACION: "aceptados",
   FINALIZADO: "aceptados",
   CANCELADO: "rechazados",
@@ -47,8 +47,8 @@ const CATEGORIA_ESTADO: Record<string, Exclude<Filtro, "todos">> = {
 
 const FILTROS: { valor: Filtro; etiqueta: string }[] = [
   { valor: "todos", etiqueta: "Todos" },
-  { valor: "solicitados", etiqueta: "Solicitados" },
-  { valor: "aceptados", etiqueta: "Aceptados" },
+  { valor: "solicitados", etiqueta: "Pendientes" },
+  { valor: "aceptados", etiqueta: "Solicitados" },
   { valor: "rechazados", etiqueta: "Rechazados" },
 ];
 

@@ -1,15 +1,22 @@
 export type EstadoCotizacion =
+  | "PENDIENTE"
   | "SOLICITADO"
-  | "APROBADO"
   | "EN_NEGOCIACION"
   | "FINALIZADO"
   | "CANCELADO"
   | "RECHAZADA"
   | "VENCIDA";
 
+/**
+ * Pendiente es el presupuesto recién estimado (apenas el cliente ve el
+ * total en el carrito) — todavía no es un pedido real, así que nunca
+ * llega al backoffice (ver filtro en page.tsx). Si el cliente confirma
+ * ("Solicitar contacto comercial"), recién ahí pasa a Solicitado y
+ * aparece para Comercial.
+ */
 export const ETIQUETA_ESTADO: Record<EstadoCotizacion, string> = {
+  PENDIENTE: "Pendiente",
   SOLICITADO: "Solicitado",
-  APROBADO: "Aprobado por el cliente",
   EN_NEGOCIACION: "En negociación",
   FINALIZADO: "Finalizado",
   CANCELADO: "Cancelado",
@@ -21,8 +28,8 @@ export const COLOR_ESTADO: Record<
   EstadoCotizacion,
   "info" | "warning" | "success" | "error" | "default" | "secondary"
 > = {
-  SOLICITADO: "warning",
-  APROBADO: "success",
+  PENDIENTE: "warning",
+  SOLICITADO: "success",
   EN_NEGOCIACION: "secondary",
   FINALIZADO: "success",
   CANCELADO: "default",
@@ -32,16 +39,18 @@ export const COLOR_ESTADO: Record<
 
 /**
  * Transiciones manuales disponibles para Comercial/Administrador desde
- * el backoffice. SOLICITADO no tiene ninguna: ahí el único que decide
- * es el cliente (aceptar/rechazar desde su cuenta), Comercial solo
- * puede ajustar cantidades/descuento y reenviar (ver
- * ajustarSolicitud), no cambiar el estado directamente. VENCIDA no
- * tiene disparador manual: es automática por fecha (todavía sin un
- * proceso programado que la aplique).
+ * el backoffice. Pendiente y Rechazada no tienen ninguna: ni siquiera
+ * llegan a verse en el backoffice (ahí el único que decide es el
+ * cliente, confirmando o rechazando desde su cuenta). En Solicitado,
+ * Comercial solo puede ajustar cantidades/descuento y reenviar (ver
+ * ajustarSolicitud), no cambiar el estado directamente más que para
+ * pasar a negociación, finalizar o cancelar. VENCIDA no tiene
+ * disparador manual: es automática por fecha (todavía sin un proceso
+ * programado que la aplique).
  */
 export const TRANSICIONES_MANUALES: Record<EstadoCotizacion, { estado: EstadoCotizacion; etiqueta: string }[]> = {
-  SOLICITADO: [],
-  APROBADO: [
+  PENDIENTE: [],
+  SOLICITADO: [
     { estado: "EN_NEGOCIACION", etiqueta: "Pasar a negociación" },
     { estado: "FINALIZADO", etiqueta: "Aprobar y enviar a Eventos" },
     { estado: "CANCELADO", etiqueta: "Cancelar" },

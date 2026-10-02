@@ -14,13 +14,19 @@ export interface ItemCarrito {
   cantidad: number;
 }
 
-/** Datos del formulario + el estimado ya calculado, guardados mientras el cliente va a loguearse/registrarse y vuelve a confirmar. */
+/** Un servicio adicional elegido en el carrito. cantidadPersonas solo aplica a los de tipo POR_PERSONA (no todos los invitados beben o son mayores de edad, por ejemplo) — en el resto se ignora. */
+export interface AdicionalSeleccionado {
+  idAdicional: number;
+  cantidadPersonas?: number;
+}
+
+/** Datos del presupuesto ya creado como PENDIENTE en la base (ver crearPresupuestoPendiente), guardados en el navegador para mostrar el resumen sin tener que volver a pedirlo. */
 export interface PedidoPendiente {
+  idCotizacion: number;
   nombreEvento: string;
   fechaEvento: string;
   cantidadComensales: number;
-  idsAdicionales: number[];
-  nombresAdicionales: string[];
+  adicionalesSeleccionados: AdicionalSeleccionado[];
   desglose: DesgloseCarrito;
 }
 
@@ -29,7 +35,7 @@ export interface BorradorPedido {
   nombreEvento: string;
   fechaEvento: string;
   cantidadComensales: string;
-  idsAdicionales: number[];
+  adicionalesSeleccionados: AdicionalSeleccionado[];
 }
 
 interface CarritoContextType {

@@ -276,7 +276,7 @@ export interface ServicioPublico {
   idAdicional: number;
   nombre: string;
   descripcion: string | null;
-  tipoCobro: "FIJO" | "POR_PERSONA";
+  tipoCobro: "FIJO" | "POR_PERSONA" | "POR_MESA";
   precioUnitario: number;
 }
 
@@ -293,7 +293,7 @@ export async function obtenerServiciosPublicos(parametros: ParametrosPortal): Pr
     idAdicional: fila.id_adicional,
     nombre: fila.nombre_servicio,
     descripcion: fila.descripcion,
-    tipoCobro: fila.tipo_cobro as "FIJO" | "POR_PERSONA",
+    tipoCobro: fila.tipo_cobro as "FIJO" | "POR_PERSONA" | "POR_MESA",
     precioUnitario: calcularPrecioPublico(
       { coeficienteVenta: fila.coeficiente_venta, costoUnitario: fila.costo_actual },
       parametros,
@@ -305,7 +305,7 @@ export async function obtenerServiciosPublicos(parametros: ParametrosPortal): Pr
 export interface AdicionalParaCalculo {
   idAdicional: number;
   nombreServicio: string;
-  tipoCobro: "FIJO" | "POR_PERSONA";
+  tipoCobro: "FIJO" | "POR_PERSONA" | "POR_MESA";
   coeficienteVenta: number;
   costoUnitario: Decimal;
 }
@@ -324,7 +324,7 @@ export async function obtenerAdicionalesParaCalculo(idsAdicionales: number[]): P
   return (data ?? []).map((fila) => ({
     idAdicional: fila.id_adicional,
     nombreServicio: fila.nombre_servicio,
-    tipoCobro: fila.tipo_cobro as "FIJO" | "POR_PERSONA",
+    tipoCobro: fila.tipo_cobro as "FIJO" | "POR_PERSONA" | "POR_MESA",
     coeficienteVenta: fila.coeficiente_venta,
     costoUnitario: new Decimal(fila.costo_actual),
   }));

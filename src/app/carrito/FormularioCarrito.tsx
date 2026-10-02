@@ -19,9 +19,13 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { IMAGEN_PLACEHOLDER } from "@/lib/cliente-portal/imagenes";
-import { useCarrito } from "@/lib/carrito-cliente/CarritoProvider";
+import { formatoMoneda } from "@/lib/formato";
+import { useCarrito, type AdicionalSeleccionado } from "@/lib/carrito-cliente/CarritoProvider";
 import type { ServicioPublico } from "@/lib/cotizador/datos";
-import { simularPresupuesto } from "./actions";
+import { crearPresupuestoPendiente } from "./actions";
+
+/** Cuántos invitados entran por mesa — mismo criterio que usa el servidor para cotizar los adicionales "por mesa" (ver INVITADOS_POR_MESA en carrito/actions.ts). */
+const INVITADOS_POR_MESA = 8;
 
 export function fechaMinimaHoy(): string {
   const ahora = new Date();
@@ -44,7 +48,7 @@ export default function FormularioCarrito({
   const [nombreEvento, setNombreEvento] = useState("");
   const [fechaEvento, setFechaEvento] = useState("");
   const [cantidadComensales, setCantidadComensales] = useState("");
-  const [idsAdicionales, setIdsAdicionales] = useState<number[]>([]);
+  const [adicionalesSeleccionados, setAdicionalesSeleccionados] = useState<AdicionalSeleccionado[]>([]);
   const [consentimiento, setConsentimiento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,16 +60,31 @@ export default function FormularioCarrito({
       setNombreEvento(borrador.nombreEvento);
       setFechaEvento(borrador.fechaEvento);
       setCantidadComensales(borrador.cantidadComensales);
-      setIdsAdicionales(borrador.idsAdicionales);
+      setAdicionalesSeleccionados(borrador.adicionalesSeleccionados);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargado]);
 
   const totalItems = items.reduce((suma, item) => suma + item.cantidad, 0);
+  const comensalesNumero = Number(cantidadComensales) || 0;
 
-  function alternarAdicional(idAdicional: number) {
-    setIdsAdicionales((actual) =>
-      actual.includes(idAdicional) ? actual.filter((id) => id !== idAdicional) : [...actual, idAdicional],
+  function alternarAdicional(adicional: ServicioPublico) {
+    setAdicionalesSeleccionados((actual) => {
+      const yaElegido = actual.some((a) => a.idAdicional === adicional.idAdicional);
+      if (yaElegido) return actual.filter((a) => a.idAdicional !== adicional.idAdicional);
+      return [
+        ...actual,
+        {
+          idAdicional: adicional.idAdicional,
+          cantidadPersonas: adicional.tipoCobro === "POR_PERSONA" ? comensalesNumero || undefined : undefined,
+        },
+      ];
+    });
+  }
+
+  function actualizarCantidadPersonas(idAdicional: number, cantidadPersonas: string) {
+    setAdicionalesSeleccionados((actual) =>
+      actual.map((a) => (a.idAdicional === idAdicional ? { ...a, cantidadPersonas: Number(cantidadPersonas) || 0 } : a)),
     );
   }
 
@@ -92,16 +111,28 @@ export default function FormularioCarrito({
       setError("Tenés que aceptar los Términos y Condiciones para continuar.");
       return;
     }
+    for (const seleccion of adicionalesSeleccionados) {
+      const adicional = adicionales.find((a) => a.idAdicional === seleccion.idAdicional);
+      if (adicional?.tipoCobro === "POR_PERSONA" && (!seleccion.cantidadPersonas || seleccion.cantidadPersonas < 1)) {
+        setError(`Ingresá la cantidad de personas para "${adicional.nombre}".`);
+        return;
+      }
+    }
+
     if (!estaLogueado) {
-      guardarBorrador({ nombreEvento, fechaEvento, cantidadComensales, idsAdicionales });
+      guardarBorrador({ nombreEvento, fechaEvento, cantidadComensales, adicionalesSeleccionados });
       router.push("/login?redirect=/carrito");
       return;
     }
 
     setEnviando(true);
-    const resultado = await simularPresupuesto({
+    const resultado = await crearPresupuestoPendiente({
       items: items.map((item) => ({ tipoItem: item.tipoItem, idReferencia: item.idReferencia, cantidad: item.cantidad })),
-      idsAdicionales,
+      adicionalesSeleccionados,
+      nombreEvento,
+      fechaEvento,
+      cantidadComensales: comensales,
+      consentimientoDatos: consentimiento,
     });
     setEnviando(false);
 
@@ -112,11 +143,11 @@ export default function FormularioCarrito({
 
     limpiarBorrador();
     guardarPedidoPendiente({
+      idCotizacion: resultado.idCotizacion,
       nombreEvento,
       fechaEvento,
       cantidadComensales: comensales,
-      idsAdicionales,
-      nombresAdicionales: resultado.nombresAdicionales,
+      adicionalesSeleccionados,
       desglose: resultado.desglose,
     });
     router.push("/carrito/resumen");
@@ -254,24 +285,58 @@ export default function FormularioCarrito({
                   <Typography variant="body2" sx={{ fontWeight: 600, color: paletaCliente.textoOscuro, mb: 1 }}>
                     Servicios adicionales
                   </Typography>
-                  <Stack>
-                    {adicionales.map((adicional) => (
-                      <FormControlLabel
-                        key={adicional.idAdicional}
-                        control={
-                          <Checkbox
-                            checked={idsAdicionales.includes(adicional.idAdicional)}
-                            onChange={() => alternarAdicional(adicional.idAdicional)}
-                            disabled={enviando}
+                  <Stack spacing={1}>
+                    {adicionales.map((adicional) => {
+                      const seleccion = adicionalesSeleccionados.find((a) => a.idAdicional === adicional.idAdicional);
+                      const marcado = Boolean(seleccion);
+
+                      return (
+                        <Box key={adicional.idAdicional}>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={marcado}
+                                onChange={() => alternarAdicional(adicional)}
+                                disabled={enviando}
+                              />
+                            }
+                            label={
+                              <Typography variant="body2" sx={{ color: paletaCliente.textoSecundario }}>
+                                {adicional.nombre} —{" "}
+                                {adicional.tipoCobro === "FIJO" && (
+                                  <strong>{formatoMoneda.format(adicional.precioUnitario)}</strong>
+                                )}
+                                {adicional.tipoCobro === "POR_PERSONA" && (
+                                  <strong>{formatoMoneda.format(adicional.precioUnitario)} por persona</strong>
+                                )}
+                                {adicional.tipoCobro === "POR_MESA" && (
+                                  <strong>{formatoMoneda.format(adicional.precioUnitario)} por mesa</strong>
+                                )}
+                              </Typography>
+                            }
                           />
-                        }
-                        label={
-                          <Typography variant="body2" sx={{ color: paletaCliente.textoSecundario }}>
-                            {adicional.nombre}
-                          </Typography>
-                        }
-                      />
-                    ))}
+
+                          {marcado && adicional.tipoCobro === "POR_PERSONA" && (
+                            <TextField
+                              label="Cantidad de personas"
+                              type="number"
+                              size="small"
+                              value={seleccion?.cantidadPersonas ?? ""}
+                              onChange={(evento) => actualizarCantidadPersonas(adicional.idAdicional, evento.target.value)}
+                              slotProps={{ htmlInput: { min: 1, max: comensalesNumero || undefined, step: 1 } }}
+                              disabled={enviando}
+                              sx={{ display: "block", ml: 4, mt: 0.5, maxWidth: 220 }}
+                            />
+                          )}
+
+                          {marcado && adicional.tipoCobro === "POR_MESA" && (
+                            <Typography variant="caption" sx={{ display: "block", ml: 4, mt: 0.5, color: paletaCliente.textoTerciario }}>
+                              El precio es por mesa, se calculan mesas de {INVITADOS_POR_MESA} personas.
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Stack>
                 </Box>
               )}

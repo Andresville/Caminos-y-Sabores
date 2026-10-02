@@ -9,8 +9,6 @@ import {
   obtenerRecetaParaCalculo,
   type ParametrosPortal,
 } from "@/lib/cotizador/datos";
-import { renderizarPdfCotizacion } from "@/lib/cotizador/pdf";
-import { enviarPdfCotizacion } from "@/lib/cotizador/email";
 
 export interface ItemCarritoEntrada {
   tipoItem: TipoItemCarrito;
@@ -18,22 +16,33 @@ export interface ItemCarritoEntrada {
   cantidad: number;
 }
 
+export interface AdicionalSeleccionadoEntrada {
+  idAdicional: number;
+  /** Solo relevante para servicios POR_PERSONA (no todos los invitados beben, por ejemplo) — se ignora en FIJO y POR_MESA. */
+  cantidadPersonas?: number;
+}
+
+/** Cuántos invitados caben por mesa para los adicionales que se cobran "por mesa" (mantel, centro de mesa, etc.) — no es un dato que cargue el cliente. */
+const INVITADOS_POR_MESA = 8;
+
 /**
- * Resuelve los ítems del carrito (menú/plato) a líneas con precio real,
- * recalculado siempre desde la base — nunca confía en nada que mande el
- * navegador. Los adicionales NO entran acá: son informativos, sin precio
- * propio en esta instancia (los cotiza el equipo comercial aparte).
+ * Resuelve los ítems del carrito (menú/plato) y los servicios
+ * adicionales elegidos a líneas con precio real, recalculado siempre
+ * desde la base — nunca confía en nada que mande el navegador.
  */
 async function resolverLineasPrecificadas(
   items: ItemCarritoEntrada[],
+  adicionalesSeleccionados: AdicionalSeleccionadoEntrada[],
+  cantidadComensales: number,
   parametros: ParametrosPortal,
 ): Promise<{ tipo: "ok"; lineas: LineaCarrito[] } | { tipo: "error"; mensaje: string }> {
   const idsMenu = items.filter((item) => item.tipoItem === "MENU").map((item) => item.idReferencia);
   const idsReceta = items.filter((item) => item.tipoItem === "RECETA").map((item) => item.idReferencia);
 
-  const [menus, recetas] = await Promise.all([
+  const [menus, recetas, adicionales] = await Promise.all([
     Promise.all(idsMenu.map((idMenu) => obtenerMenuParaCalculo(idMenu, parametros))),
     Promise.all(idsReceta.map((idReceta) => obtenerRecetaParaCalculo(idReceta, parametros))),
+    obtenerAdicionalesParaCalculo(adicionalesSeleccionados.map((a) => a.idAdicional)),
   ]);
 
   const lineas: LineaCarrito[] = [];
@@ -71,63 +80,69 @@ async function resolverLineasPrecificadas(
       });
     }
   }
+
+  for (const seleccion of adicionalesSeleccionados) {
+    const adicional = adicionales.find((a) => a.idAdicional === seleccion.idAdicional);
+    if (!adicional) return { tipo: "error", mensaje: "Algún servicio adicional que elegiste ya no está disponible." };
+
+    let cantidad: number;
+    if (adicional.tipoCobro === "FIJO") {
+      cantidad = 1;
+    } else if (adicional.tipoCobro === "POR_MESA") {
+      cantidad = Math.ceil(cantidadComensales / INVITADOS_POR_MESA);
+    } else {
+      cantidad = seleccion.cantidadPersonas ?? cantidadComensales;
+      if (!Number.isInteger(cantidad) || cantidad < 1) {
+        return { tipo: "error", mensaje: `Ingresá una cantidad de personas válida para "${adicional.nombreServicio}".` };
+      }
+      if (cantidad > cantidadComensales) {
+        return {
+          tipo: "error",
+          mensaje: `"${adicional.nombreServicio}" no puede ser para más personas que la cantidad de comensales.`,
+        };
+      }
+    }
+
+    lineas.push({
+      tipoItem: "ADICIONAL",
+      idReferencia: adicional.idAdicional,
+      descripcion: adicional.nombreServicio,
+      cantidad,
+      coeficienteVenta: adicional.coeficienteVenta,
+      costoUnitario: adicional.costoUnitario,
+    });
+  }
+
   return { tipo: "ok", lineas };
 }
 
-export interface EntradaSimulacion {
+export interface EntradaCreacionPresupuesto {
   items: ItemCarritoEntrada[];
-  idsAdicionales: number[];
-}
-
-export type ResultadoSimulacion =
-  | { tipo: "ok"; desglose: DesgloseCarrito; nombresAdicionales: string[] }
-  | { tipo: "error"; mensaje: string };
-
-/**
- * Estimado instantáneo del carrito, sin persistir nada y sin requerir
- * sesión — el cliente puede verlo antes de decidir si pide contacto
- * comercial. Los adicionales solo se listan por nombre (sin precio):
- * los cotiza el equipo comercial en la negociación.
- */
-export async function simularPresupuesto(entrada: EntradaSimulacion): Promise<ResultadoSimulacion> {
-  if (entrada.items.length === 0) return { tipo: "error", mensaje: "Tu carrito está vacío." };
-
-  const parametros = await obtenerParametrosPortal();
-  const resuelto = await resolverLineasPrecificadas(entrada.items, parametros);
-  if (resuelto.tipo === "error") return resuelto;
-
-  const adicionales = await obtenerAdicionalesParaCalculo(entrada.idsAdicionales);
-  const nombresAdicionales = entrada.idsAdicionales
-    .map((id) => adicionales.find((a) => a.idAdicional === id)?.nombreServicio)
-    .filter((nombre): nombre is string => Boolean(nombre));
-
-  const desglose = calcularDesgloseCarrito(resuelto.lineas, parametros);
-  return { tipo: "ok", desglose, nombresAdicionales };
-}
-
-export interface EntradaEnvioPedido {
-  items: ItemCarritoEntrada[];
-  idsAdicionales: number[];
+  adicionalesSeleccionados: AdicionalSeleccionadoEntrada[];
   nombreEvento: string;
   fechaEvento: string;
   cantidadComensales: number;
   consentimientoDatos: boolean;
 }
 
-export type ResultadoEnvioPedido =
-  | { tipo: "ok"; codigo: string; idCotizacion: number }
+export type ResultadoCreacionPresupuesto =
+  | { tipo: "ok"; codigo: string; idCotizacion: number; desglose: DesgloseCarrito }
   | { tipo: "error"; mensaje: string };
 
 /**
- * "Solicitar contacto comercial": recalcula todo desde cero en el
- * servidor (nunca confía en el total que mandó el navegador) y
- * persiste la cotización en estado SOLICITADO — un estimado automático,
- * todavía no revisado por Comercial.
+ * "Ver presupuesto estimado": recalcula todo desde cero en el servidor
+ * (nunca confía en el total que mandó el navegador) y persiste la
+ * cotización en estado PENDIENTE — todavía no es un pedido real, ni
+ * siquiera llega al backoffice. Recién si el cliente la confirma
+ * ("Solicitar contacto comercial", ver responderPresupuesto en
+ * mis-presupuestos) pasa a SOLICITADO y ahí sí la ve Comercial.
  */
-export async function enviarPedido(entrada: EntradaEnvioPedido): Promise<ResultadoEnvioPedido> {
+export async function crearPresupuestoPendiente(
+  entrada: EntradaCreacionPresupuesto,
+): Promise<ResultadoCreacionPresupuesto> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { tipo: "error", mensaje: "Iniciá sesión para enviar tu pedido." };
+  if (!userData.user) return { tipo: "error", mensaje: "Iniciá sesión para ver tu presupuesto." };
 
   const { data: cliente } = await supabase
     .from("cliente")
@@ -150,39 +165,24 @@ export async function enviarPedido(entrada: EntradaEnvioPedido): Promise<Resulta
   }
 
   const parametros = await obtenerParametrosPortal();
-  const resuelto = await resolverLineasPrecificadas(entrada.items, parametros);
+  const resuelto = await resolverLineasPrecificadas(
+    entrada.items,
+    entrada.adicionalesSeleccionados,
+    entrada.cantidadComensales,
+    parametros,
+  );
   if (resuelto.tipo === "error") return resuelto;
-
-  const adicionales = await obtenerAdicionalesParaCalculo(entrada.idsAdicionales);
-  const nombresAdicionales: string[] = [];
-  for (const idAdicional of entrada.idsAdicionales) {
-    const adicional = adicionales.find((a) => a.idAdicional === idAdicional);
-    if (!adicional) return { tipo: "error", mensaje: "Algún servicio adicional que elegiste ya no está disponible." };
-    nombresAdicionales.push(adicional.nombreServicio);
-  }
 
   const desglose = calcularDesgloseCarrito(resuelto.lineas, parametros);
 
-  // Los adicionales viajan como líneas informativas sin precio (el equipo
-  // comercial los cotiza en la negociación) — no suman al subtotal/IVA/total.
-  const lineasParaGuardar = [
-    ...desglose.lineas.map((linea) => ({
-      tipo_item: linea.tipoItem,
-      referencia_id: linea.idReferencia,
-      descripcion: linea.descripcion,
-      cantidad: linea.cantidad,
-      precio_unitario: linea.precioUnitario,
-      subtotal: linea.subtotal,
-    })),
-    ...entrada.idsAdicionales.map((idAdicional, indice) => ({
-      tipo_item: "ADICIONAL",
-      referencia_id: idAdicional,
-      descripcion: nombresAdicionales[indice],
-      cantidad: 1,
-      precio_unitario: 0,
-      subtotal: 0,
-    })),
-  ];
+  const lineasParaGuardar = desglose.lineas.map((linea) => ({
+    tipo_item: linea.tipoItem,
+    referencia_id: linea.idReferencia,
+    descripcion: linea.descripcion,
+    cantidad: linea.cantidad,
+    precio_unitario: linea.precioUnitario,
+    subtotal: linea.subtotal,
+  }));
 
   const { data: emision, error } = await supabase
     .rpc("emitir_cotizacion_cliente", {
@@ -204,32 +204,14 @@ export async function enviarPedido(entrada: EntradaEnvioPedido): Promise<Resulta
 
   if (error || !emision) {
     console.error("[carrito] error en emitir_cotizacion_cliente:", error);
-    return { tipo: "error", mensaje: "No pudimos enviar tu pedido. Volvé a intentar en un momento." };
+    return { tipo: "error", mensaje: "No pudimos calcular tu presupuesto. Volvé a intentar en un momento." };
   }
 
-  const { id_cotizacion: idCotizacion, codigo, fecha_validez: fechaValidez } = emision as {
+  const { id_cotizacion: idCotizacion, codigo } = emision as {
     id_cotizacion: number;
     codigo: string;
     fecha_validez: string;
   };
 
-  try {
-    const pdf = await renderizarPdfCotizacion({
-      codigo,
-      fechaEmision: new Date().toISOString(),
-      fechaValidez,
-      nombreCliente: cliente.nombre_completo,
-      tipoEvento: entrada.nombreEvento,
-      cantidadPax: entrada.cantidadComensales,
-      lineas: desglose.lineas,
-      subtotalNeto: desglose.subtotalNeto,
-      montoIva: desglose.montoIva,
-      montoTotal: desglose.montoTotal,
-    });
-    await enviarPdfCotizacion({ destinatario: cliente.email, codigo, pdf });
-  } catch (excepcion) {
-    console.error("[carrito] no se pudo generar/enviar el PDF del estimado:", excepcion);
-  }
-
-  return { tipo: "ok", codigo, idCotizacion };
+  return { tipo: "ok", codigo, idCotizacion, desglose };
 }

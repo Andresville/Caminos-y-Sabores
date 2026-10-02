@@ -12,7 +12,6 @@ const DIAS_PROXIMA_A_VENCER = 3;
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
   SOLICITADO: "Solicitadas",
-  APROBADO: "Aprobadas",
   EN_NEGOCIACION: "En negociación",
   FINALIZADO: "Finalizadas",
   CANCELADO: "Canceladas",
@@ -26,9 +25,11 @@ export default async function DashboardComercial() {
   const hoy = new Date();
   const limiteVencimiento = new Date(hoy.getTime() + DIAS_PROXIMA_A_VENCER * 24 * 60 * 60 * 1000);
 
+  // Pendiente todavía no es un pedido real (el cliente ni lo confirmó) — no debe contar en las métricas de Comercial.
   const { data: cotizaciones } = await supabase
     .from("cotizacion")
-    .select("id_cotizacion, codigo, nombre_cliente, fecha_validez, monto_total, estado");
+    .select("id_cotizacion, codigo, nombre_cliente, fecha_validez, monto_total, estado")
+    .neq("estado", "PENDIENTE");
 
   const lista = cotizaciones ?? [];
   const total = lista.length;

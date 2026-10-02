@@ -15,7 +15,14 @@ import CloseIcon from "@mui/icons-material/Close";
 import { paletaCliente } from "@/lib/cliente-portal/paleta";
 import { responderPresupuesto } from "./actions";
 
-export default function AccionesRespuesta({ idCotizacion }: { idCotizacion: number }) {
+export default function AccionesRespuesta({
+  idCotizacion,
+  soloRechazar = false,
+}: {
+  idCotizacion: number;
+  /** Cuando el presupuesto ya está Solicitado, el cliente se puede arrepentir y rechazarlo, pero ya no tiene sentido "solicitar contacto" de nuevo. */
+  soloRechazar?: boolean;
+}) {
   const router = useRouter();
   const [pendiente, iniciarTransicion] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -51,16 +58,18 @@ export default function AccionesRespuesta({ idCotizacion }: { idCotizacion: numb
     <Stack spacing={1.5}>
       {error && <Alert severity="error">{error}</Alert>}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        <Button
-          onClick={aceptar}
-          variant="contained"
-          size="large"
-          fullWidth
-          disabled={pendiente}
-          sx={{ bgcolor: paletaCliente.primario, "&:hover": { bgcolor: paletaCliente.primarioOscuro } }}
-        >
-          Aceptar Presupuesto
-        </Button>
+        {!soloRechazar && (
+          <Button
+            onClick={aceptar}
+            variant="contained"
+            size="large"
+            fullWidth
+            disabled={pendiente}
+            sx={{ bgcolor: paletaCliente.primario, "&:hover": { bgcolor: paletaCliente.primarioOscuro } }}
+          >
+            Solicitar contacto comercial
+          </Button>
+        )}
         <Button
           onClick={() => setMostrarRechazo(true)}
           variant="outlined"

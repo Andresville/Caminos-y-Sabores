@@ -21,7 +21,7 @@ export interface FilaAdicional {
   id_adicional: number;
   nombre_servicio: string;
   descripcion: string | null;
-  tipo_cobro: "FIJO" | "POR_PERSONA";
+  tipo_cobro: "FIJO" | "POR_PERSONA" | "POR_MESA";
   costo_actual: number;
   coeficiente_venta: number;
   estado: boolean;

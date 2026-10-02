@@ -50,8 +50,8 @@ export interface LineaSolicitud {
   orden: number;
 }
 
-const MUESTRA_DATOS_CLIENTE: EstadoCotizacion[] = ["APROBADO", "EN_NEGOCIACION"];
-const PUEDE_AJUSTAR_DESCUENTO: EstadoCotizacion[] = ["SOLICITADO", "APROBADO", "EN_NEGOCIACION"];
+const MUESTRA_DATOS_CLIENTE: EstadoCotizacion[] = ["SOLICITADO", "EN_NEGOCIACION"];
+const PUEDE_AJUSTAR_DESCUENTO: EstadoCotizacion[] = ["SOLICITADO", "EN_NEGOCIACION"];
 
 export default function BandejaSolicitudes({
   solicitudes,
@@ -65,7 +65,7 @@ export default function BandejaSolicitudes({
   redondeo: number;
 }) {
   const [seleccionadaId, setSeleccionadaId] = useState<number | null>(solicitudes[0]?.id_cotizacion ?? null);
-  const cantidadNuevas = solicitudes.filter((s) => s.estado === "APROBADO").length;
+  const cantidadNuevas = solicitudes.filter((s) => s.estado === "SOLICITADO").length;
 
   const seleccionada = solicitudes.find((s) => s.id_cotizacion === seleccionadaId) ?? null;
   const lineasSeleccionada = lineas.filter((l) => l.id_cotizacion === seleccionadaId).sort((a, b) => a.orden - b.orden);

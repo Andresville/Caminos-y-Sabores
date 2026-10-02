@@ -22,9 +22,9 @@ import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
 export const dynamic = "force-dynamic";
 
 const ETIQUETAS_ESTADO: Record<string, { texto: string; color: "info" | "warning" | "success" | "error" | "default" }> = {
-  SOLICITADO: { texto: "Solicitado", color: "warning" },
-  APROBADO: { texto: "Aceptado", color: "success" },
-  EN_NEGOCIACION: { texto: "En negociación con nuestro equipo", color: "warning" },
+  PENDIENTE: { texto: "Pendiente", color: "warning" },
+  SOLICITADO: { texto: "Solicitado", color: "success" },
+  EN_NEGOCIACION: { texto: "En negociación", color: "success" },
   FINALIZADO: { texto: "Finalizado", color: "success" },
   CANCELADO: { texto: "Cancelado", color: "error" },
   RECHAZADA: { texto: "Rechazado", color: "error" },
@@ -58,7 +58,9 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
   const serviciosSolicitados = (detalle ?? []).filter((linea) => linea.precio_unitario_congelado === 0);
 
   const badge = ETIQUETAS_ESTADO[cotizacion.estado] ?? { texto: cotizacion.estado, color: "default" as const };
-  const puedeResponder = cotizacion.estado === "SOLICITADO";
+  const puedeResponder = cotizacion.estado === "PENDIENTE";
+  // Una vez Solicitado (o ya en negociación con el equipo), el cliente ya no puede "solicitar" de nuevo, pero se puede arrepentir y rechazarlo igual.
+  const puedeRechazarSolo = cotizacion.estado === "SOLICITADO" || cotizacion.estado === "EN_NEGOCIACION";
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: paletaCliente.fondo }}>
@@ -168,8 +170,9 @@ export default async function PaginaDetallePresupuesto({ params }: { params: Pro
         </Paper>
 
         {puedeResponder && <AccionesRespuesta idCotizacion={cotizacion.id_cotizacion} />}
+        {puedeRechazarSolo && <AccionesRespuesta idCotizacion={cotizacion.id_cotizacion} soloRechazar />}
 
-        {cotizacion.estado === "APROBADO" && (
+        {cotizacion.estado === "SOLICITADO" && (
           <Alert severity="success">
             ¡Presupuesto aceptado! Nuestro equipo comercial se va a poner en contacto para coordinar los
             detalles finales.

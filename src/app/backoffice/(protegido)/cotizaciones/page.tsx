@@ -20,6 +20,10 @@ export default async function PaginaCotizaciones() {
       .select(
         "id_cotizacion, codigo, tipo_evento, fecha_emision, fecha_evento, fecha_validez, cantidad_pax, nombre_cliente, email_cliente, telefono_cliente, subtotal_neto, monto_iva, monto_total, descuento_pct, estado, motivo_rechazo",
       )
+      // Pendiente (todavía ni confirmado por el cliente) y Rechazada (el
+      // cliente ya dijo que no) nunca llegan al backoffice — no hay nada
+      // que Comercial pueda hacer con esos dos.
+      .not("estado", "in", "(PENDIENTE,RECHAZADA)")
       .order("fecha_emision", { ascending: false })
       .returns<FilaSolicitud[]>(),
     supabase

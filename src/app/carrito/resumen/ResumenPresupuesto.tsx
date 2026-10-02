@@ -5,16 +5,15 @@ import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { fechaLocalDesdeISO, formatoFechaLarga, formatoMoneda } from "@/lib/formato";
 import { useCarrito } from "@/lib/carrito-cliente/CarritoProvider";
-import { enviarPedido } from "../actions";
+import { responderPresupuesto } from "../../mis-presupuestos/[id]/actions";
 
 export default function ResumenPresupuesto() {
-  const { items, pedidoPendiente, cargado, vaciar, limpiarPedidoPendiente } = useCarrito();
+  const { pedidoPendiente, cargado, vaciar, limpiarPedidoPendiente } = useCarrito();
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,18 +35,11 @@ export default function ResumenPresupuesto() {
     setError(null);
 
     setEnviando(true);
-    const resultado = await enviarPedido({
-      items: items.map((item) => ({ tipoItem: item.tipoItem, idReferencia: item.idReferencia, cantidad: item.cantidad })),
-      idsAdicionales: pedidoPendiente.idsAdicionales,
-      nombreEvento: pedidoPendiente.nombreEvento,
-      fechaEvento: pedidoPendiente.fechaEvento,
-      cantidadComensales: pedidoPendiente.cantidadComensales,
-      consentimientoDatos: true,
-    });
+    const resultado = await responderPresupuesto(pedidoPendiente.idCotizacion, true);
     setEnviando(false);
 
-    if (resultado.tipo === "error") {
-      setError(resultado.mensaje);
+    if (resultado.error) {
+      setError(resultado.error);
       return;
     }
     router.push("/mis-presupuestos");
@@ -97,19 +89,6 @@ export default function ResumenPresupuesto() {
             </Stack>
           ))}
         </Stack>
-
-        {pedidoPendiente.nombresAdicionales.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: paletaCliente.textoMuted, letterSpacing: 0.5 }}>
-              SERVICIOS ADICIONALES
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mt: 1 }}>
-              {pedidoPendiente.nombresAdicionales.map((nombre, indice) => (
-                <Chip key={indice} label={nombre} sx={{ bgcolor: paletaCliente.fondoClaro, color: paletaCliente.textoSecundario }} />
-              ))}
-            </Stack>
-          </Box>
-        )}
 
         <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${paletaCliente.borde}`, pt: 2 }}>
           <Box>
