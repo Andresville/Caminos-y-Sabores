@@ -42,7 +42,7 @@ export default function FormularioCarrito({
   estaLogueado: boolean;
   adicionales: ServicioPublico[];
 }) {
-  const { items, actualizarCantidad, quitar, cargado, borrador, guardarPedidoPendiente, guardarBorrador, limpiarBorrador } =
+  const { items, actualizarCantidad, quitar, cargado, borrador, vaciar, guardarPedidoPendiente, guardarBorrador, limpiarBorrador } =
     useCarrito();
   const router = useRouter();
   const [nombreEvento, setNombreEvento] = useState("");
@@ -142,6 +142,7 @@ export default function FormularioCarrito({
     }
 
     limpiarBorrador();
+    vaciar();
     guardarPedidoPendiente({
       idCotizacion: resultado.idCotizacion,
       nombreEvento,
