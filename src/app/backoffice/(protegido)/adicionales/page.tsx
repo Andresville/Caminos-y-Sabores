@@ -9,7 +9,7 @@ import TablaAdicionales, { type FilaAdicional } from "./TablaAdicionales";
 export default async function PaginaAdicionales() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol === "Cocina") {
+  if (usuarioActual?.rol === "Ayudante de cocina") {
     redirect("/backoffice");
   }
 

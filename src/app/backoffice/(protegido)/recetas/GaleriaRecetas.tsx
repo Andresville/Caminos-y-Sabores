@@ -50,7 +50,7 @@ export default function GaleriaRecetas({
   coeficienteVentaDefecto: number;
 }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Cocina" || rol === "Administrador";
+  const puedeEscribir = rol === "Ayudante de cocina" || rol === "Administrador";
   const [busqueda, setBusqueda] = useState("");
 
   const recetasFiltradas = useMemo(() => {

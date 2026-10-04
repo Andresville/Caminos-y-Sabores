@@ -29,7 +29,7 @@ export interface FilaAdicional {
 
 export default function TablaAdicionales({ adicionales }: { adicionales: FilaAdicional[] }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Ayudante de compras" || rol === "Asistente Comercial" || rol === "Administrador";
+  const puedeEscribir = rol === "Administrador";
   const [modo, setModo] = useState<"nuevo" | FilaAdicional | null>(null);
 
   return (

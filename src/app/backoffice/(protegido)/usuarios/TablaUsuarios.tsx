@@ -25,8 +25,7 @@ const COLOR_ACCION = "#219653";
 const COLOR_ROL: Record<string, { bg: string; color: string }> = {
   Administrador: { bg: "#F1E7FB", color: "#7B3FE4" },
   "Asistente Comercial": { bg: "#DCEEFB", color: "#2E6FBE" },
-  Cocina: { bg: "#FCEBD9", color: "#C2652F" },
-  "Ayudante de compras": { bg: "#D9F5EA", color: "#1E9E77" },
+  "Ayudante de cocina": { bg: "#FCEBD9", color: "#C2652F" },
 };
 const COLOR_ROL_DEFECTO = { bg: "#EDEDED", color: "#616161" };
 

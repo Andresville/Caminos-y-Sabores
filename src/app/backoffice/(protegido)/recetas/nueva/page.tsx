@@ -7,7 +7,7 @@ import type { InsumoCatalogo, UnidadCatalogo } from "../mapeo";
 export default async function PaginaNuevaReceta() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Cocina" && usuarioActual?.rol !== "Administrador") {
+  if (usuarioActual?.rol !== "Ayudante de cocina" && usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice/recetas");
   }
 

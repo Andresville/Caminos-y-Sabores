@@ -7,7 +7,7 @@ export default async function PaginaEditarInsumo({ params }: { params: Promise<{
   const { id } = await params;
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Ayudante de compras" && usuarioActual?.rol !== "Administrador") {
+  if (usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice/insumos");
   }
 

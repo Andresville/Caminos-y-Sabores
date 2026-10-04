@@ -6,7 +6,7 @@ import FormularioMenu, { type RecetaDisponible } from "../FormularioMenu";
 export default async function PaginaNuevoMenu() {
   const usuarioActual = await obtenerUsuarioActual();
 
-  if (usuarioActual?.rol !== "Cocina" && usuarioActual?.rol !== "Administrador") {
+  if (usuarioActual?.rol !== "Ayudante de cocina" && usuarioActual?.rol !== "Administrador") {
     redirect("/backoffice/menus");
   }
 

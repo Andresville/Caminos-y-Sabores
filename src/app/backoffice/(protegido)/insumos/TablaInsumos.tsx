@@ -65,9 +65,9 @@ export interface FilaInsumo {
 
 export default function TablaInsumos({ insumos }: { insumos: FilaInsumo[] }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Ayudante de compras" || rol === "Administrador";
-  // Mismos roles que pueden leer historico_precio_mp por RLS (Cocina no tiene acceso a precios).
-  const puedeVerHistorico = rol === "Ayudante de compras" || rol === "Asistente Comercial" || rol === "Administrador";
+  const puedeEscribir = rol === "Administrador";
+  // Mismos roles que pueden leer historico_precio_mp por RLS (Ayudante de cocina no tiene acceso a precios).
+  const puedeVerHistorico = rol === "Asistente Comercial" || rol === "Administrador";
   const [busqueda, setBusqueda] = useState("");
   const [aEliminar, setAEliminar] = useState<FilaInsumo | null>(null);
 

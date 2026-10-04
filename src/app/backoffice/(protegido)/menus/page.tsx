@@ -1,8 +1,6 @@
-import { redirect } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { createClient } from "@/lib/supabase/server";
-import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
 import GaleriaMenus, { type FilaMenu } from "./GaleriaMenus";
 
 interface MenuDb {
@@ -21,12 +19,6 @@ interface LineaMenuDb {
 }
 
 export default async function PaginaMenus() {
-  const usuarioActual = await obtenerUsuarioActual();
-
-  if (usuarioActual?.rol === "Ayudante de compras") {
-    redirect("/backoffice");
-  }
-
   const supabase = await createClient();
 
   const [{ data: menus, error }, { data: lineas }] = await Promise.all([

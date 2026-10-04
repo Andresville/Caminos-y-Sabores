@@ -19,7 +19,7 @@ export default async function PaginaHistorialPrecio({ params }: { params: Promis
   const { id } = await params;
   const usuarioActual = await obtenerUsuarioActual();
 
-  const rolesConAcceso = ["Ayudante de compras", "Asistente Comercial", "Administrador"];
+  const rolesConAcceso = ["Asistente Comercial", "Administrador"];
   if (!usuarioActual || !rolesConAcceso.includes(usuarioActual.rol)) {
     redirect("/backoffice/insumos");
   }

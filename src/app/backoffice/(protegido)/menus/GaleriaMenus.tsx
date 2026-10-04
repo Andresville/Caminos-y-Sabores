@@ -31,7 +31,7 @@ export interface FilaMenu {
 
 export default function GaleriaMenus({ menus }: { menus: FilaMenu[] }) {
   const { rol } = useUsuarioActual();
-  const puedeEscribir = rol === "Cocina" || rol === "Administrador";
+  const puedeEscribir = rol === "Ayudante de cocina" || rol === "Administrador";
   const [busqueda, setBusqueda] = useState("");
 
   const menusFiltrados = useMemo(() => {

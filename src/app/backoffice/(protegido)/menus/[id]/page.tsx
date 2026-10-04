@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerUsuarioActual } from "@/lib/usuario-actual/servidor";
 import FormularioMenu, { type LineaExistente, type MenuEditable, type RecetaDisponible } from "../FormularioMenu";
@@ -12,10 +12,7 @@ export default async function PaginaEditorMenu({ params }: { params: Promise<{ i
   }
 
   const usuarioActual = await obtenerUsuarioActual();
-  if (usuarioActual?.rol === "Ayudante de compras") {
-    redirect("/backoffice");
-  }
-  const puedeEditar = usuarioActual?.rol === "Cocina" || usuarioActual?.rol === "Administrador";
+  const puedeEditar = usuarioActual?.rol === "Ayudante de cocina" || usuarioActual?.rol === "Administrador";
 
   const supabase = await createClient();
 
