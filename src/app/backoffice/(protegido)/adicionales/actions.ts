@@ -9,7 +9,7 @@ export interface EstadoFormulario {
 
 function mensajeAmigable(codigo: string | undefined, mensajeOriginal: string): string {
   if (codigo === "23514") {
-    return "El costo y el coeficiente de venta deben ser válidos (costo ≥ 0, coeficiente ≥ 1).";
+    return "El costo y el margen deben ser válidos (costo ≥ 0, margen ≥ 0%).";
   }
   return mensajeOriginal;
 }
@@ -32,7 +32,7 @@ export async function guardarAdicional(
     return { error: "El costo debe ser mayor o igual a cero." };
   }
   if (!Number.isFinite(coeficienteVenta) || coeficienteVenta < 1) {
-    return { error: "El coeficiente de venta debe ser mayor o igual a 1." };
+    return { error: "El margen debe ser mayor o igual a 0%." };
   }
 
   const supabase = await createClient();
@@ -65,6 +65,20 @@ export async function guardarAdicional(
     .eq("id_adicional", Number(idExistenteRaw));
 
   if (error) return { error: mensajeAmigable(error.code, error.message) };
+
+  revalidatePath("/backoffice/adicionales");
+  return {};
+}
+
+/** Baja lógica: desactiva el adicional en vez de borrarlo, para no perder presupuestos que ya lo usaron. */
+export async function desactivarAdicional(idAdicional: number): Promise<EstadoFormulario> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("servicio_adicional")
+    .update({ estado: false })
+    .eq("id_adicional", idAdicional);
+
+  if (error) return { error: error.message };
 
   revalidatePath("/backoffice/adicionales");
   return {};

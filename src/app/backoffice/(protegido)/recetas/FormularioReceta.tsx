@@ -210,8 +210,12 @@ export default function FormularioReceta({
     const porciones = Number(cantidadPorciones) || 0;
     const costoPorPorcion = porciones > 0 ? costoTotal.dividedBy(porciones) : new Decimal(0);
 
-    return { resultados, costoInsumos, mermaMonto, manoObraMonto, costoTotal, costoPorPorcion };
-  }, [lineas, insumos, unidades, mermaPct, manoObraPct, cantidadPorciones]);
+    const margen = new Decimal(margenPct || 0);
+    const totalConMargen = costoTotal.plus(costoTotal.times(margen.dividedBy(100)));
+    const precioPorPlato = porciones > 0 ? totalConMargen.dividedBy(porciones) : new Decimal(0);
+
+    return { resultados, costoInsumos, mermaMonto, manoObraMonto, costoTotal, costoPorPorcion, totalConMargen, precioPorPlato };
+  }, [lineas, insumos, unidades, mermaPct, manoObraPct, cantidadPorciones, margenPct]);
 
   function guardarMargen() {
     if (!receta) return;
@@ -542,14 +546,19 @@ export default function FormularioReceta({
                     const resultado = calculo.resultados.get(linea.clave);
                     const insumoSeleccionado =
                       insumos.find((insumo) => insumo.id_materia_prima === linea.id_materia_prima) ?? null;
+                    // Un insumo inactivo no se puede elegir para una línea nueva, pero si esta línea ya lo tenía cargado, se sigue mostrando (no se borra sola).
+                    const opcionesFila =
+                      insumoSeleccionado && !insumoSeleccionado.estado
+                        ? [insumoSeleccionado, ...insumos.filter((i) => i.estado)]
+                        : insumos.filter((i) => i.estado);
 
                     return (
                       <TableRow key={linea.clave}>
                         <TableCell sx={{ minWidth: 220 }}>
                           <Autocomplete
                             size="small"
-                            options={insumos}
-                            getOptionLabel={(opcion) => opcion.nombre}
+                            options={opcionesFila}
+                            getOptionLabel={(opcion) => (opcion.estado ? opcion.nombre : `${opcion.nombre} (Inactivo)`)}
                             value={insumoSeleccionado}
                             onChange={(_evento, valor) =>
                               actualizarLinea(linea.clave, { id_materia_prima: valor?.id_materia_prima ?? "" })
@@ -659,7 +668,7 @@ export default function FormularioReceta({
           </Stack>
 
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
-            <Typography sx={{ fontWeight: 700 }}>Costo total producción</Typography>
+            <Typography sx={{ fontWeight: 700 }}>Subtotal</Typography>
             <Typography sx={{ fontWeight: 700 }}>{formatoMoneda.format(calculo.costoTotal.toNumber())}</Typography>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
@@ -667,6 +676,16 @@ export default function FormularioReceta({
               Margen ingresado
             </Typography>
             <Typography variant="body2">{margenPct ? `${margenPct}%` : "—"}</Typography>
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+            <Typography sx={{ fontWeight: 700 }}>Total</Typography>
+            <Typography sx={{ fontWeight: 700 }}>{formatoMoneda.format(calculo.totalConMargen.toNumber())}</Typography>
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Precio por plato
+            </Typography>
+            <Typography variant="body2">{formatoMoneda.format(calculo.precioPorPlato.toNumber())}</Typography>
           </Box>
 
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
@@ -684,18 +703,6 @@ export default function FormularioReceta({
               size="small"
               color={estado === "ACTIVA" ? "success" : estado === "INACTIVA" ? "default" : "warning"}
             />
-          </Box>
-
-          <Box sx={{ mt: 2.5, p: 2, bgcolor: "#E3F7EA", borderRadius: 1 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-              ¿Cómo se calcula?
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Costo total = Insumos + Merma + Mano de obra.
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Los % de merma, mano de obra y margen se ingresan manualmente.
-            </Typography>
           </Box>
         </Paper>
       </Stack>

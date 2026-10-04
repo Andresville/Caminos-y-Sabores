@@ -29,10 +29,10 @@ export default async function PaginaEditorMenu({ params }: { params: Promise<{ i
         .eq("id_menu", idMenu)
         .order("orden")
         .returns<LineaExistente[]>(),
+      // Trae también las inactivas: si el menú ya incluía una receta que después se desactivó (p. ej. en cascada al desactivar un insumo), tiene que poder seguir mostrándola (no se borra sola).
       supabase
         .from("receta")
-        .select("id_receta, nombre_plato, cantidad_porciones, costo_por_porcion, coeficiente_venta")
-        .eq("estado", "ACTIVA")
+        .select("id_receta, nombre_plato, cantidad_porciones, costo_por_porcion, coeficiente_venta, estado")
         .order("nombre_plato")
         .returns<RecetaDisponible[]>(),
       supabase.rpc("obtener_coeficiente_venta_defecto"),

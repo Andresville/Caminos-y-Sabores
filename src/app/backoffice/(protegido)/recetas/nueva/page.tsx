@@ -16,7 +16,7 @@ export default async function PaginaNuevaReceta() {
   const [{ data: insumos }, { data: unidades }] = await Promise.all([
     supabase
       .from("materia_prima")
-      .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra")
+      .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra, estado")
       .eq("estado", true)
       .order("nombre")
       .returns<InsumoCatalogo[]>(),

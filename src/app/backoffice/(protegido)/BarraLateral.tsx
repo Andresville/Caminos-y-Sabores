@@ -14,6 +14,7 @@ import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import PeopleOutlineOutlinedIcon from "@mui/icons-material/PeopleOutlineOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import RestaurantOutlinedIcon from "@mui/icons-material/RestaurantOutlined";
+import RoomServiceOutlinedIcon from "@mui/icons-material/RoomServiceOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
@@ -43,6 +44,13 @@ export const ITEMS_NAV: ItemNav[] = [
   { etiqueta: "Dashboard", href: "/backoffice", icono: GridViewOutlinedIcon, disponible: true },
   { etiqueta: "Usuarios", href: "/backoffice/usuarios", icono: PeopleOutlineOutlinedIcon, disponible: true, roles: ["Administrador"] },
   { etiqueta: "Insumos", href: "/backoffice/insumos", icono: Inventory2OutlinedIcon, disponible: true },
+  {
+    etiqueta: "Adicionales",
+    href: "/backoffice/adicionales",
+    icono: RoomServiceOutlinedIcon,
+    disponible: true,
+    roles: ["Asistente Comercial", "Administrador"],
+  },
   { etiqueta: "Recetas", href: "/backoffice/recetas", icono: RestaurantOutlinedIcon, disponible: true },
   {
     etiqueta: "Menú",

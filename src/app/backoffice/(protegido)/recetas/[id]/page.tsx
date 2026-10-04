@@ -36,10 +36,10 @@ export default async function PaginaEditorReceta({
         .eq("id_receta", idReceta)
         .order("orden")
         .returns<LineaExistente[]>(),
+      // Trae también los inactivos: si la receta ya tenía una línea con un insumo que después se desactivó, tiene que poder seguir mostrándola (no se borra sola).
       supabase
         .from("materia_prima")
-        .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra")
-        .eq("estado", true)
+        .select("id_materia_prima, nombre, costo_unitario, densidad_g_ml, id_unidad_compra, estado")
         .order("nombre")
         .returns<InsumoCatalogo[]>(),
       supabase

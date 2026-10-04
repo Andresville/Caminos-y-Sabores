@@ -145,8 +145,7 @@ export default function GaleriaRecetas({
                       {receta.nombre_plato}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {precioVenta != null ? formatoMoneda.format(precioVenta.toNumber()) : "—"} · {receta.cantidad_porciones}{" "}
-                      porción{receta.cantidad_porciones === 1 ? "" : "es"}
+                      {precioVenta != null ? formatoMoneda.format(precioVenta.toNumber()) : "—"} por plato
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Min. {receta.cantidad_porciones} pers. · Margen {margenPct.toFixed(0)}%

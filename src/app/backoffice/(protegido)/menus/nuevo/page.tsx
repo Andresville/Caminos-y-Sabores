@@ -15,7 +15,7 @@ export default async function PaginaNuevoMenu() {
   const [{ data: recetas }, { data: coeficienteVentaDefectoRpc }] = await Promise.all([
     supabase
       .from("receta")
-      .select("id_receta, nombre_plato, cantidad_porciones, costo_por_porcion, coeficiente_venta")
+      .select("id_receta, nombre_plato, cantidad_porciones, costo_por_porcion, coeficiente_venta, estado")
       .eq("estado", "ACTIVA")
       .order("nombre_plato")
       .returns<RecetaDisponible[]>(),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Decimal from "decimal.js";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -12,6 +13,7 @@ import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import { margenSobreCosto, coeficienteDesdeMargenSobreCosto } from "@/domain/costeo";
 import { formatoMoneda } from "@/lib/formato";
 import { guardarAdicional } from "./actions";
 import { TIPOS_COBRO } from "./mapeo";
@@ -31,15 +33,16 @@ export default function DialogoAdicional({
   const [descripcion, setDescripcion] = useState(adicional?.descripcion ?? "");
   const [tipoCobro, setTipoCobro] = useState(adicional?.tipo_cobro ?? "");
   const [costoActual, setCostoActual] = useState(adicional ? String(adicional.costo_actual) : "");
-  const [coeficienteVenta, setCoeficienteVenta] = useState(
-    adicional ? String(adicional.coeficiente_venta) : "1.45",
+  const [margenPct, setMargenPct] = useState(
+    adicional ? margenSobreCosto(new Decimal(adicional.coeficiente_venta)).times(100).toFixed(2) : "45",
   );
   const [estadoActivo, setEstadoActivo] = useState(adicional?.estado ?? true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciarTransicion] = useTransition();
 
+  const coeficienteVenta = margenPct ? coeficienteDesdeMargenSobreCosto(new Decimal(margenPct)) : null;
   const precioNetoSugerido =
-    costoActual && coeficienteVenta ? Number(costoActual) * Number(coeficienteVenta) : null;
+    costoActual && coeficienteVenta ? Number(costoActual) * coeficienteVenta.toNumber() : null;
 
   function cerrar() {
     if (pendiente) return;
@@ -54,7 +57,7 @@ export default function DialogoAdicional({
     formData.set("descripcion", descripcion);
     formData.set("tipo_cobro", tipoCobro);
     formData.set("costo_actual", costoActual);
-    formData.set("coeficiente_venta", coeficienteVenta);
+    formData.set("coeficiente_venta", coeficienteVenta ? coeficienteVenta.toString() : "");
     formData.set("estado", String(estadoActivo));
 
     iniciarTransicion(async () => {
@@ -123,11 +126,11 @@ export default function DialogoAdicional({
           </Stack>
 
           <TextField
-            label="Coeficiente de venta"
+            label="Margen (%)"
             type="number"
-            value={coeficienteVenta}
-            onChange={(evento) => setCoeficienteVenta(evento.target.value)}
-            slotProps={{ htmlInput: { step: "0.01", min: "1" } }}
+            value={margenPct}
+            onChange={(evento) => setMargenPct(evento.target.value)}
+            slotProps={{ htmlInput: { step: "1", min: "0" } }}
             required
             fullWidth
             disabled={pendiente}
@@ -162,8 +165,7 @@ export default function DialogoAdicional({
                 Precio neto sugerido
               </Typography>
               <Typography sx={{ fontWeight: 600 }}>
-                {formatoMoneda.format(Number(costoActual))} × {coeficienteVenta} ={" "}
-                {formatoMoneda.format(precioNetoSugerido)}
+                {formatoMoneda.format(Number(costoActual))} + {margenPct}% = {formatoMoneda.format(precioNetoSugerido)}
               </Typography>
             </Box>
           )}
@@ -176,7 +178,7 @@ export default function DialogoAdicional({
         <Button
           onClick={confirmar}
           variant="contained"
-          disabled={pendiente || !nombreServicio || !tipoCobro || !costoActual || !coeficienteVenta}
+          disabled={pendiente || !nombreServicio || !tipoCobro || !costoActual || !margenPct}
         >
           {pendiente ? "Guardando…" : esEdicion ? "Guardar cambios" : "Guardar"}
         </Button>

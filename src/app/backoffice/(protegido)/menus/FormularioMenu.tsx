@@ -40,6 +40,8 @@ export interface RecetaDisponible {
   cantidad_porciones: number;
   costo_por_porcion: number | null;
   coeficiente_venta: number | null;
+  /** Una receta inactiva igual puede seguir en un menú que ya la incluía (no se quita la línea) — solo deja de poder elegirse para una línea nueva. */
+  estado: "BORRADOR" | "ACTIVA" | "INACTIVA";
 }
 
 export interface LineaExistente {
@@ -100,7 +102,9 @@ export default function FormularioMenu({
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
 
   const recetasIncluidasIds = new Set(lineas.map((l) => l.id_receta));
-  const opcionesBusqueda = recetasDisponibles.filter((r) => !recetasIncluidasIds.has(r.id_receta));
+  const opcionesBusqueda = recetasDisponibles.filter(
+    (r) => r.estado === "ACTIVA" && !recetasIncluidasIds.has(r.id_receta),
+  );
 
   const paxMinimoRequerido = useMemo(() => {
     return lineas.reduce((maximo, linea) => {
@@ -406,7 +410,13 @@ export default function FormularioMenu({
                         {indice + 1}
                       </Typography>
                       <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 600 }}>{receta?.nombre_plato ?? "—"}</Typography>
+                        <Typography sx={{ fontWeight: 600 }}>
+                          {receta
+                            ? receta.estado === "ACTIVA"
+                              ? receta.nombre_plato
+                              : `${receta.nombre_plato} (Inactiva)`
+                            : "—"}
+                        </Typography>
                       </Box>
                       <TextField
                         size="small"
@@ -452,16 +462,6 @@ export default function FormularioMenu({
         </Stack>
 
         <Stack spacing={3} sx={{ width: { xs: "100%", md: 300 }, flexShrink: 0, position: { md: "sticky" }, top: { md: 16 } }}>
-          <Box sx={{ p: 2.5, bgcolor: "#E3F7EA", borderRadius: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Nota
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Este menú se mostrará en el catálogo del portal del cliente. Asegurate de incluir una buena
-              descripción e imágenes atractivas.
-            </Typography>
-          </Box>
-
           <Paper variant="outlined" sx={{ p: 2.5 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography variant="body2" color="text.secondary">

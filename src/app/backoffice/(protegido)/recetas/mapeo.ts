@@ -7,6 +7,8 @@ export interface InsumoCatalogo {
   costo_unitario: number;
   densidad_g_ml: number | null;
   id_unidad_compra: number;
+  /** Un insumo inactivo igual puede seguir en una receta que ya lo usaba (no se borra la línea) — solo deja de poder elegirse para una línea nueva. */
+  estado: boolean;
 }
 
 export interface UnidadCatalogo {

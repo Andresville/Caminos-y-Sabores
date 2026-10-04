@@ -14,7 +14,6 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import IconButton from "@mui/material/IconButton";
-import Alert from "@mui/material/Alert";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -99,10 +98,6 @@ export default function TablaInsumos({ insumos }: { insumos: FilaInsumo[] }) {
         )}
       </Stack>
 
-      <Alert severity="success" icon={false} sx={{ mb: 3, bgcolor: "#E3F7EA", color: "#1B5E32" }}>
-        Cargá el precio y el peso del bulto que compraste: el precio unitario se calcula solo.
-      </Alert>
-
       <TextField
         placeholder="Buscar insumos..."
         value={busqueda}
@@ -133,6 +128,7 @@ export default function TablaInsumos({ insumos }: { insumos: FilaInsumo[] }) {
                   PRECIO UNITARIO
                 </TableCell>
                 <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>ÚLTIMA ACTUALIZACIÓN</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>ESTADO</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
                   ACCIONES
                 </TableCell>
@@ -154,23 +150,24 @@ export default function TablaInsumos({ insumos }: { insumos: FilaInsumo[] }) {
                   <TableCell sx={{ color: "text.secondary" }}>
                     {formatoFecha.format(new Date(insumo.ultima_actualizacion))}
                   </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={insumo.estado ? "Activo" : "Inactivo"}
+                      size="small"
+                      sx={
+                        insumo.estado
+                          ? { bgcolor: "#E3F7EA", color: "#219653", fontWeight: 700 }
+                          : { bgcolor: "#FBE4E4", color: "#D64545", fontWeight: 700 }
+                      }
+                    />
+                  </TableCell>
                   <TableCell align="right">
-                    {puedeEscribir ? (
+                    {puedeEscribir && (
                       <Link href={`/backoffice/insumos/${insumo.id_materia_prima}`}>
                         <IconButton size="small" sx={{ color: COLOR_EDITAR }}>
                           <EditOutlinedIcon fontSize="small" />
                         </IconButton>
                       </Link>
-                    ) : (
-                      <Chip
-                        label={insumo.estado ? "Activo" : "Inactivo"}
-                        size="small"
-                        sx={
-                          insumo.estado
-                            ? { bgcolor: "#E3F7EA", color: "#219653", fontWeight: 700, mr: 1 }
-                            : { bgcolor: "#FBE4E4", color: "#D64545", fontWeight: 700, mr: 1 }
-                        }
-                      />
                     )}
                     {puedeVerHistorico && (
                       <Link href={`/backoffice/insumos/${insumo.id_materia_prima}/historial`}>

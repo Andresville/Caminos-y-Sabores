@@ -168,7 +168,7 @@ export async function guardarInsumo(
 
   const { data: actual, error: errorActual } = await supabase
     .from("materia_prima")
-    .select("precio_bulto, cantidad_bulto")
+    .select("precio_bulto, cantidad_bulto, estado")
     .eq("id_materia_prima", id)
     .single();
 
@@ -186,6 +186,24 @@ export async function guardarInsumo(
     if (errorPrecio) return { error: errorPrecio.message };
   }
 
+  // Si el formulario cambia el Estado, esa baja o alta tiene que pasar
+  // por la misma cascada que usa el resto del sistema: al desactivar,
+  // la receta y el menú que usaban este insumo no pueden quedar
+  // activos mostrando algo que ya no se puede preparar; al reactivar,
+  // las recetas y menús que dependían solo de este insumo vuelven a
+  // activarse solas si no les falta nada más.
+  if (actual.estado && !estado) {
+    const { error: errorCascada } = await supabase.rpc("desactivar_insumo_en_cascada", {
+      p_id_materia_prima: id,
+    });
+    if (errorCascada) return { error: errorCascada.message };
+  } else if (!actual.estado && estado) {
+    const { error: errorCascada } = await supabase.rpc("activar_insumo_en_cascada", {
+      p_id_materia_prima: id,
+    });
+    if (errorCascada) return { error: errorCascada.message };
+  }
+
   const { error: errorResto } = await supabase
     .from("materia_prima")
     .update({
@@ -201,19 +219,28 @@ export async function guardarInsumo(
   if (errorResto) return { error: mensajeAmigable(errorResto.code, errorResto.message) };
 
   revalidatePath("/backoffice/insumos");
+  revalidatePath("/backoffice/recetas", "layout");
+  revalidatePath("/backoffice/menus", "layout");
   return {};
 }
 
-/** Baja lógica: desactiva el insumo (Estado = Inactivo) en vez de borrarlo — un borrado real rompería el historial de precio y las recetas que ya lo usan. */
+/**
+ * Baja lógica: desactiva el insumo (Estado = Inactivo) en vez de
+ * borrarlo — un borrado real rompería el historial de precio y las
+ * recetas que ya lo usan. En cascada (ver desactivar_insumo_en_cascada),
+ * también desactiva las recetas que lo usaban y los menús que incluían
+ * esas recetas — nada se borra, todo queda en Inactivo.
+ */
 export async function desactivarInsumo(idMateriaPrima: number): Promise<EstadoFormulario> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("materia_prima")
-    .update({ estado: false })
-    .eq("id_materia_prima", idMateriaPrima);
+  const { error } = await supabase.rpc("desactivar_insumo_en_cascada", {
+    p_id_materia_prima: idMateriaPrima,
+  });
 
   if (error) return { error: error.message };
 
   revalidatePath("/backoffice/insumos");
+  revalidatePath("/backoffice/recetas", "layout");
+  revalidatePath("/backoffice/menus", "layout");
   return {};
 }
