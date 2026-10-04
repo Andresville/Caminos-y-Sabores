@@ -12,12 +12,11 @@ import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
-import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import { formatoFecha, formatoMoneda, formatoRelativo } from "@/lib/formato";
 import { ETIQUETA_ESTADO, COLOR_ESTADO, TRANSICIONES_MANUALES, type EstadoCotizacion } from "./mapeo";
-import { ajustarSolicitud, cambiarEstadoCotizacion } from "./actions";
+import { cambiarEstadoCotizacion } from "./actions";
 
 const COLOR_ACCION = "#219653";
 
@@ -51,7 +50,6 @@ export interface LineaSolicitud {
 }
 
 const MUESTRA_DATOS_CLIENTE: EstadoCotizacion[] = ["SOLICITADO", "EN_NEGOCIACION"];
-const PUEDE_AJUSTAR_DESCUENTO: EstadoCotizacion[] = ["SOLICITADO", "EN_NEGOCIACION"];
 
 export default function BandejaSolicitudes({
   solicitudes,
@@ -74,7 +72,7 @@ export default function BandejaSolicitudes({
     <>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 3 }}>
         <Typography variant="h5" component="h1" sx={{ fontFamily: "Georgia, serif", fontWeight: 700 }}>
-          Solicitudes / Bandeja
+          Presupuestos / Bandeja
         </Typography>
         {cantidadNuevas > 0 && (
           <Chip
@@ -164,49 +162,17 @@ function DetalleSolicitud({
   redondeo: number;
 }) {
   const router = useRouter();
-  const esSolicitado = solicitud.estado === "SOLICITADO";
-  const puedeAjustarDescuento = PUEDE_AJUSTAR_DESCUENTO.includes(solicitud.estado);
 
-  const [cantidades, setCantidades] = useState<Record<number, string>>(
-    Object.fromEntries(lineas.map((l) => [l.id_detalle, String(l.cantidad)])),
-  );
-  const [descuentoPct, setDescuentoPct] = useState(String(solicitud.descuento_pct));
-  const [error, setError] = useState<string | null>(null);
-  const [pendiente, iniciarTransicion] = useTransition();
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
   const [pendienteAccion, iniciarTransicionAccion] = useTransition();
 
   const subtotal = useMemo(() => {
-    return lineas.reduce((acumulado, linea) => {
-      const cantidad = Number(cantidades[linea.id_detalle] ?? linea.cantidad) || 0;
-      return acumulado + cantidad * linea.precio_unitario_congelado;
-    }, 0);
-  }, [lineas, cantidades]);
+    return lineas.reduce((acumulado, linea) => acumulado + linea.cantidad * linea.precio_unitario_congelado, 0);
+  }, [lineas]);
 
-  const subtotalConDescuento = subtotal * (1 - (Number(descuentoPct) || 0) / 100);
-  const montoIva = subtotalConDescuento * (ivaPct / 100);
-  const totalAntesDeRedondeo = subtotalConDescuento + montoIva;
+  const montoIva = subtotal * (ivaPct / 100);
+  const totalAntesDeRedondeo = subtotal + montoIva;
   const totalFinal = redondeo > 0 ? Math.round(totalAntesDeRedondeo / redondeo) * redondeo : totalAntesDeRedondeo;
-
-  function guardar(reenviar: boolean) {
-    setError(null);
-    iniciarTransicion(async () => {
-      const resultado = await ajustarSolicitud({
-        idCotizacion: solicitud.id_cotizacion,
-        descuentoPct: Number(descuentoPct) || 0,
-        lineas: lineas.map((linea) => ({
-          idDetalle: linea.id_detalle,
-          cantidad: Number(cantidades[linea.id_detalle] ?? linea.cantidad) || 0,
-        })),
-        reenviar,
-      });
-      if (resultado.error) {
-        setError(resultado.error);
-      } else {
-        router.refresh();
-      }
-    });
-  }
 
   function cambiarEstado(nuevoEstado: EstadoCotizacion) {
     setErrorAccion(null);
@@ -266,12 +232,6 @@ function DetalleSolicitud({
         </Box>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
       <Table size="small" sx={{ mb: 2 }}>
         <TableHead>
           <TableRow>
@@ -288,35 +248,16 @@ function DetalleSolicitud({
           </TableRow>
         </TableHead>
         <TableBody>
-          {lineas.map((linea) => {
-            const cantidad = Number(cantidades[linea.id_detalle] ?? linea.cantidad) || 0;
-            return (
-              <TableRow key={linea.id_detalle}>
-                <TableCell>{linea.descripcion}</TableCell>
-                <TableCell align="right" sx={{ width: 110 }}>
-                  {esSolicitado ? (
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={cantidades[linea.id_detalle] ?? String(linea.cantidad)}
-                      onChange={(evento) =>
-                        setCantidades((actual) => ({ ...actual, [linea.id_detalle]: evento.target.value }))
-                      }
-                      slotProps={{ htmlInput: { min: "0", step: "1", style: { textAlign: "right" } } }}
-                      disabled={pendiente}
-                      sx={{ width: 90 }}
-                    />
-                  ) : (
-                    linea.cantidad
-                  )}
-                </TableCell>
-                <TableCell align="right">{formatoMoneda.format(linea.precio_unitario_congelado)}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  {formatoMoneda.format(cantidad * linea.precio_unitario_congelado)}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {lineas.map((linea) => (
+            <TableRow key={linea.id_detalle}>
+              <TableCell>{linea.descripcion}</TableCell>
+              <TableCell align="right">{linea.cantidad}</TableCell>
+              <TableCell align="right">{formatoMoneda.format(linea.precio_unitario_congelado)}</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                {formatoMoneda.format(linea.cantidad * linea.precio_unitario_congelado)}
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
 
@@ -324,21 +265,6 @@ function DetalleSolicitud({
         <Stack direction="row" sx={{ justifyContent: "space-between" }}>
           <Typography color="text.secondary">Subtotal:</Typography>
           <Typography sx={{ fontWeight: 700 }}>{formatoMoneda.format(subtotal)}</Typography>
-        </Stack>
-        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-          <Typography color="text.secondary">Descuento (%):</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-            <TextField
-              size="small"
-              type="number"
-              value={descuentoPct}
-              onChange={(evento) => setDescuentoPct(evento.target.value)}
-              slotProps={{ htmlInput: { min: "0", max: "99.9", step: "1", style: { textAlign: "right" } } }}
-              disabled={!puedeAjustarDescuento || pendiente}
-              sx={{ width: 90 }}
-            />
-            <Typography sx={{ fontWeight: 700, color: COLOR_ACCION }}>{Number(descuentoPct) || 0}%</Typography>
-          </Stack>
         </Stack>
         <Stack direction="row" sx={{ justifyContent: "space-between" }}>
           <Typography color="text.secondary">IVA ({ivaPct}%):</Typography>
@@ -360,32 +286,12 @@ function DetalleSolicitud({
         </Alert>
       )}
 
-      {(puedeAjustarDescuento || opcionesEstado.length > 0) && (
+      {opcionesEstado.length > 0 && (
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", letterSpacing: 0.5, mb: 1, display: "block" }}>
             ACCIONES DISPONIBLES
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            {puedeAjustarDescuento && (
-              <>
-                <Button
-                  variant="outlined"
-                  disabled={pendiente}
-                  onClick={() => guardar(false)}
-                  sx={{ flex: 1 }}
-                >
-                  {pendiente ? "…" : "Guardar borrador"}
-                </Button>
-                <Button
-                  variant="contained"
-                  disabled={pendiente}
-                  onClick={() => guardar(true)}
-                  sx={{ flex: 1, bgcolor: COLOR_ACCION, "&:hover": { bgcolor: "#1B7A44" }, fontWeight: 700 }}
-                >
-                  {pendiente ? "Enviando…" : "Enviar presupuesto"}
-                </Button>
-              </>
-            )}
             {opcionesEstado.map((opcion) => (
               <Button
                 key={opcion.estado}

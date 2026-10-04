@@ -42,17 +42,15 @@ export const COLOR_ESTADO: Record<
  * el backoffice. Pendiente y Rechazada no tienen ninguna: ni siquiera
  * llegan a verse en el backoffice (ahí el único que decide es el
  * cliente, confirmando o rechazando desde su cuenta). En Solicitado,
- * Comercial solo puede ajustar cantidades/descuento y reenviar (ver
- * ajustarSolicitud), no cambiar el estado directamente más que para
- * pasar a negociación, finalizar o cancelar. VENCIDA no tiene
- * disparador manual: es automática por fecha (todavía sin un proceso
- * programado que la aplique).
+ * Comercial solo puede pasar a negociación o cancelar — ya no ajusta
+ * cantidades ni descuento desde acá (eso se discute en la negociación).
+ * VENCIDA no tiene disparador manual: es automática por fecha (todavía
+ * sin un proceso programado que la aplique).
  */
 export const TRANSICIONES_MANUALES: Record<EstadoCotizacion, { estado: EstadoCotizacion; etiqueta: string }[]> = {
   PENDIENTE: [],
   SOLICITADO: [
     { estado: "EN_NEGOCIACION", etiqueta: "Pasar a negociación" },
-    { estado: "FINALIZADO", etiqueta: "Aprobar y enviar a Eventos" },
     { estado: "CANCELADO", etiqueta: "Cancelar" },
   ],
   EN_NEGOCIACION: [

@@ -63,7 +63,7 @@ export const ITEMS_NAV: ItemNav[] = [
   { etiqueta: "Compras", href: "/backoffice/compras", icono: ShoppingCartOutlinedIcon, disponible: false },
   { etiqueta: "Clientes", href: "/backoffice/clientes", icono: BadgeOutlinedIcon, disponible: false },
   {
-    etiqueta: "Solicitudes",
+    etiqueta: "Presupuestos",
     href: "/backoffice/cotizaciones",
     icono: MailOutlineOutlinedIcon,
     disponible: true,
