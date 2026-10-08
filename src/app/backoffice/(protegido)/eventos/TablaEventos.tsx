@@ -123,7 +123,9 @@ export default function TablaEventos({ eventos }: { eventos: FilaEvento[] }) {
                   <TableCell align="right">
                     <Stack direction="row" spacing={2} sx={{ justifyContent: "flex-end" }}>
                       <Link href={`/backoffice/eventos/${evento.id_evento}`} style={{ textDecoration: "none" }}>
-                        Ver →
+                        <Typography component="span" variant="body2" sx={{ color: "primary.main" }}>
+                          Ver →
+                        </Typography>
                       </Link>
                       {ESTADOS_CANCELABLES.includes(evento.estado) && (
                         <Typography

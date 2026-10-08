@@ -66,8 +66,20 @@ export const ITEMS_NAV: ItemNav[] = [
     disponible: true,
     roles: ["Asistente Comercial", "Administrador"],
   },
-  { etiqueta: "Compras", href: "/backoffice/compras", icono: ShoppingCartOutlinedIcon, disponible: false },
-  { etiqueta: "Clientes", href: "/backoffice/clientes", icono: BadgeOutlinedIcon, disponible: false },
+  {
+    etiqueta: "Compras",
+    href: "/backoffice/compras",
+    icono: ShoppingCartOutlinedIcon,
+    disponible: true,
+    roles: ["Asistente Comercial", "Administrador"],
+  },
+  {
+    etiqueta: "Clientes",
+    href: "/backoffice/clientes",
+    icono: BadgeOutlinedIcon,
+    disponible: true,
+    roles: ["Asistente Comercial", "Administrador"],
+  },
   {
     etiqueta: "Presupuestos",
     href: "/backoffice/cotizaciones",
@@ -135,7 +147,7 @@ export default function BarraLateral({ solicitudesPendientes }: { solicitudesPen
           const activo =
             pathname === item.href || (item.href !== "/backoffice" && pathname.startsWith(item.href));
           const Icono = item.icono;
-          const mostrarBadge = item.etiqueta === "Solicitudes" && solicitudesPendientes > 0;
+          const mostrarBadge = item.etiqueta === "Presupuestos" && solicitudesPendientes > 0;
           return (
             <ListItemButton
               key={item.href}

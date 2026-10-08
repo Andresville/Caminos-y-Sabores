@@ -20,6 +20,9 @@ export async function cambiarEstadoEvento(idEvento: number, nuevoEstado: EstadoE
 
   revalidatePath("/backoffice/eventos");
   revalidatePath(`/backoffice/eventos/${idEvento}`);
+  // El cambio de estado puede sacar (o meter) el evento de la lista de compras pendientes.
+  revalidatePath("/backoffice/compras");
+  revalidatePath(`/backoffice/compras/${idEvento}`);
   return {};
 }
 
@@ -52,6 +55,9 @@ export async function marcarEstadoInsumoEvento(
   if (error) return { error: error.message };
 
   revalidatePath(`/backoffice/eventos/${idEvento}`);
+  // Un insumo marcado desde Eventos o desde Compras se tiene que ver actualizado en las dos vistas.
+  revalidatePath("/backoffice/compras");
+  revalidatePath(`/backoffice/compras/${idEvento}`);
   return {};
 }
 
@@ -220,5 +226,8 @@ export async function solicitarListaDeCompra(idEvento: number): Promise<EstadoAc
 
   revalidatePath("/backoffice/eventos");
   revalidatePath(`/backoffice/eventos/${idEvento}`);
+  // Generar la lista mete al evento en "En Preparación", así que ya debería aparecer en Compras pendientes.
+  revalidatePath("/backoffice/compras");
+  revalidatePath(`/backoffice/compras/${idEvento}`);
   return {};
 }
