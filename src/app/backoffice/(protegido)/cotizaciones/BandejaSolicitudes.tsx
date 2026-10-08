@@ -14,9 +14,10 @@ import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
+import TextField from "@mui/material/TextField";
 import { formatoFecha, formatoMoneda, formatoRelativo } from "@/lib/formato";
 import { ETIQUETA_ESTADO, COLOR_ESTADO, TRANSICIONES_MANUALES, type EstadoCotizacion } from "./mapeo";
-import { cambiarEstadoCotizacion } from "./actions";
+import { cambiarEstadoCotizacion, actualizarDireccionEvento } from "./actions";
 
 const COLOR_ACCION = "#219653";
 
@@ -37,6 +38,7 @@ export interface FilaSolicitud {
   descuento_pct: number;
   estado: EstadoCotizacion;
   motivo_rechazo: string | null;
+  direccion_evento: string | null;
 }
 
 export interface LineaSolicitud {
@@ -165,6 +167,8 @@ function DetalleSolicitud({
 
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
   const [pendienteAccion, iniciarTransicionAccion] = useTransition();
+  const [direccionEvento, setDireccionEvento] = useState(solicitud.direccion_evento ?? "");
+  const [guardandoDireccion, iniciarTransicionDireccion] = useTransition();
 
   const subtotal = useMemo(() => {
     return lineas.reduce((acumulado, linea) => acumulado + linea.cantidad * linea.precio_unitario_congelado, 0);
@@ -187,6 +191,20 @@ function DetalleSolicitud({
   }
 
   const opcionesEstado = TRANSICIONES_MANUALES[solicitud.estado];
+  const requiereDireccion = solicitud.estado === "EN_NEGOCIACION";
+  const faltaDireccion = requiereDireccion && !direccionEvento.trim();
+
+  function guardarDireccion() {
+    if (direccionEvento.trim() === (solicitud.direccion_evento ?? "")) return;
+    iniciarTransicionDireccion(async () => {
+      const resultado = await actualizarDireccionEvento(solicitud.id_cotizacion, direccionEvento);
+      if (resultado.error) {
+        setErrorAccion(resultado.error);
+      } else {
+        router.refresh();
+      }
+    });
+  }
 
   return (
     <Paper variant="outlined" sx={{ p: 3 }}>
@@ -286,6 +304,20 @@ function DetalleSolicitud({
         </Alert>
       )}
 
+      {requiereDireccion && (
+        <TextField
+          label="Dirección del evento"
+          value={direccionEvento}
+          onChange={(evento) => setDireccionEvento(evento.target.value)}
+          onBlur={guardarDireccion}
+          disabled={guardandoDireccion}
+          required
+          fullWidth
+          helperText="Obligatoria para poder convertir el presupuesto en evento."
+          sx={{ mb: 3 }}
+        />
+      )}
+
       {opcionesEstado.length > 0 && (
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", letterSpacing: 0.5, mb: 1, display: "block" }}>
@@ -297,7 +329,7 @@ function DetalleSolicitud({
                 key={opcion.estado}
                 variant={opcion.estado === "CANCELADO" ? "outlined" : opcion.estado === "FINALIZADO" ? "contained" : "outlined"}
                 color={opcion.estado === "CANCELADO" ? "error" : "primary"}
-                disabled={pendienteAccion}
+                disabled={pendienteAccion || (opcion.estado === "FINALIZADO" && faltaDireccion)}
                 onClick={() => cambiarEstado(opcion.estado)}
                 sx={
                   opcion.estado === "FINALIZADO"

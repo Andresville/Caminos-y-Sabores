@@ -18,12 +18,13 @@ export default async function PaginaCotizaciones() {
     supabase
       .from("cotizacion")
       .select(
-        "id_cotizacion, codigo, tipo_evento, fecha_emision, fecha_evento, fecha_validez, cantidad_pax, nombre_cliente, email_cliente, telefono_cliente, subtotal_neto, monto_iva, monto_total, descuento_pct, estado, motivo_rechazo",
+        "id_cotizacion, codigo, tipo_evento, fecha_emision, fecha_evento, fecha_validez, cantidad_pax, nombre_cliente, email_cliente, telefono_cliente, subtotal_neto, monto_iva, monto_total, descuento_pct, estado, motivo_rechazo, direccion_evento",
       )
       // Pendiente (todavía ni confirmado por el cliente), Rechazada (el
       // cliente ya dijo que no), Cancelada y Vencida nunca se muestran en
       // la bandeja — no hay nada que Comercial pueda hacer con esos cuatro.
-      .not("estado", "in", "(PENDIENTE,RECHAZADA,CANCELADO,VENCIDA)")
+      // Finalizada tampoco: ya se convirtió en Evento (ver módulo Eventos).
+      .not("estado", "in", "(PENDIENTE,RECHAZADA,CANCELADO,VENCIDA,FINALIZADO)")
       .order("fecha_emision", { ascending: false })
       .returns<FilaSolicitud[]>(),
     supabase

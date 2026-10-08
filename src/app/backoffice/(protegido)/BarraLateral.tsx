@@ -59,7 +59,13 @@ export const ITEMS_NAV: ItemNav[] = [
     disponible: true,
     roles: ["Ayudante de cocina", "Asistente Comercial", "Administrador"],
   },
-  { etiqueta: "Eventos", href: "/backoffice/eventos", icono: EventOutlinedIcon, disponible: false },
+  {
+    etiqueta: "Eventos",
+    href: "/backoffice/eventos",
+    icono: EventOutlinedIcon,
+    disponible: true,
+    roles: ["Asistente Comercial", "Administrador"],
+  },
   { etiqueta: "Compras", href: "/backoffice/compras", icono: ShoppingCartOutlinedIcon, disponible: false },
   { etiqueta: "Clientes", href: "/backoffice/clientes", icono: BadgeOutlinedIcon, disponible: false },
   {
