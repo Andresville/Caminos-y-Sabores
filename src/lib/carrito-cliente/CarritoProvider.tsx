@@ -51,6 +51,8 @@ interface CarritoContextType {
   limpiarPedidoPendiente: () => void;
   guardarBorrador: (borrador: BorradorPedido) => void;
   limpiarBorrador: () => void;
+  /** Borra carrito, pedido pendiente y borrador — se usa al cerrar sesión, para que no le queden al siguiente que use este navegador. */
+  reiniciarCarrito: () => void;
 }
 
 const CLAVE_STORAGE = "caminos-y-sabores:carrito";
@@ -169,6 +171,12 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
     setBorrador(null);
   }
 
+  function reiniciarCarrito() {
+    setItems([]);
+    setPedidoPendiente(null);
+    setBorrador(null);
+  }
+
   return (
     <CarritoContext.Provider
       value={{
@@ -184,6 +192,7 @@ export function CarritoProvider({ children }: { children: ReactNode }) {
         limpiarPedidoPendiente,
         guardarBorrador,
         limpiarBorrador,
+        reiniciarCarrito,
       }}
     >
       {children}

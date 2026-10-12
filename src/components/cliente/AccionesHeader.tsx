@@ -18,7 +18,7 @@ import { paletaCliente } from "@/lib/cliente-portal/paleta";
 import { cerrarSesionCliente } from "@/app/(cliente)/login/actions";
 
 export default function AccionesHeader({ cliente }: { cliente: { nombreCompleto: string } | null }) {
-  const { items } = useCarrito();
+  const { items, reiniciarCarrito } = useCarrito();
   const totalItems = items.length;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -56,6 +56,7 @@ export default function AccionesHeader({ cliente }: { cliente: { nombreCompleto:
             <MenuItem
               onClick={() => {
                 setAnchorEl(null);
+                reiniciarCarrito();
                 cerrarSesionCliente();
               }}
               sx={{ color: "error.main" }}

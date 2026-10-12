@@ -3,14 +3,13 @@ import Link from "next/link";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HeaderCliente from "@/components/cliente/HeaderCliente";
 import FooterCliente from "@/components/cliente/FooterCliente";
 import FormularioCuenta from "./FormularioCuenta";
+import BotonCerrarSesion from "@/components/cliente/BotonCerrarSesion";
 import { paletaCliente, fuenteEncabezados } from "@/lib/cliente-portal/paleta";
 import { obtenerClienteActual } from "@/lib/cliente-actual/servidor";
-import { cerrarSesionCliente } from "@/app/(cliente)/login/actions";
 
 export default async function PaginaMiCuenta() {
   const cliente = await obtenerClienteActual();
@@ -50,11 +49,7 @@ export default async function PaginaMiCuenta() {
         </Link>
 
         <Box sx={{ textAlign: "center", mt: 4 }}>
-          <Box component="form" action={cerrarSesionCliente}>
-            <Button type="submit" color="error" size="small">
-              Cerrar sesión
-            </Button>
-          </Box>
+          <BotonCerrarSesion />
         </Box>
       </Box>
       <FooterCliente />
